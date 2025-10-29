@@ -1,611 +1,98 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CharisPay</title>
-
-<!-- PWA -->
-<meta name="theme-color" content="#4B0082">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="https://i.imgur.com/jT9Dl9w.png" sizes="192x192">
-<link rel="apple-touch-icon" href="https://i.imgur.com/jT9Dl9w.png">
-
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-<script src="https://js.paystack.co/v1/inline.js"></script>
-
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#2C003E,#4B0082);color:#fff;overflow-x:hidden;min-height:100vh;}
-a{color:inherit;text-decoration:none;}
-
-/* TOP NAV */
-#topNav {
-  position: fixed; top: 0; left: 0; width: 100%; background: #fff;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 1000;
-}
-#topNav .logo img { height: 45px; }
-#topNav .nav-icons { display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-.nav-icon {
-  width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
-  font-size: 20px; color: #4B0082; cursor: pointer; border-radius: 12px; transition: .3s;
-  position: relative; flex-shrink: 0;
-}
-.nav-icon:hover, .nav-icon.active { background: #f0e6ff; color: #6A0DAD; transform: scale(1.1); }
-.nav-icon::after { content: attr(title); position: absolute; bottom: -35px; left: 50%;
-  transform: translateX(-50%); background: #333; color: #fff; padding: 6px 12px;
-  border-radius: 6px; font-size: 12px; opacity: 0; transition: .2s; pointer-events: none;
-}
-.nav-icon:hover::after { opacity: 1; }
-
-/* MAIN */
-#main { margin-top: 80px; padding: 20px; padding-bottom: 60px; }
-.section { padding: 20px; margin-bottom: 20px; border-radius: 12px;
-  background: rgba(255,255,255,0.06); box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: none;
-}
-#home { display: block; }
-.section h3 { color: #BDA0FF; font-size: 18px; margin-bottom: 15px; }
-
-button { padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin: 5px; }
-button.paystack { background: linear-gradient(135deg,#00d478,#00b96b); color: #fff; }
-button.mpesa { background: linear-gradient(135deg,#28a745,#1e7e34); color: #fff; }
-button.till { background: linear-gradient(135deg,#17a2b8,#117a8b); color: #fff; }
-button.airtel { background: linear-gradient(135deg,#dc3545,#c82333); color: #fff; }
-button.paypal { background: linear-gradient(135deg,#0070ba,#003087); color: #fff; }
-button.danger { background: #dc3545; color: #fff; }
-
-input, select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: none; margin-bottom: 12px; }
-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-th, td { padding: 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
-th { background: rgba(255,255,255,0.1); }
-
-#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-  background: #333; color: #fff; padding: 12px 24px; border-radius: 50px; z-index: 10000;
-  opacity: 0; transition: .3s;
-}
-#toast.show { opacity: 1; }
-
-body.light { background: #f5f5f5; color: #000; }
-body.light #topNav { background: #fff; }
-body.light .section { background: #fff; color: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-
-/* Splash & Auth */
-#splash, #authScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  display: flex; align-items: center; justify-content: center; z-index: 9999;
-}
-#splash { background: linear-gradient(135deg,#4B0082,#6A0DAD); }
-#authScreen { background: linear-gradient(135deg,#2C003E,#4B0082); opacity: 0; transition: .8s; }
-#authScreen .card { background: #fff; color: #000; padding: 35px; border-radius: 16px;
-  width: 90%; max-width: 380px; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-}
-#authScreen img { height: 70px; margin-bottom: 20px; }
-
-@keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
-
-/* HOME CARDS */
-.home-card {
-  background: rgba(255,255,255,0.1); padding: 15px; border-radius: 12px;
-  margin-bottom: 15px; cursor: pointer; transition: .3s;
-}
-.home-card:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
-.home-card h4 { margin: 0 0 8px; font-size: 16px; }
-.home-card p { margin: 0; font-size: 14px; opacity: 0.9; }
-
-/* FOOTER */
-footer {
-  position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.2);
-  color: #fff; text-align: center; padding: 12px 20px; font-size: 14px;
-  backdrop-filter: blur(5px); z-index: 999;
-}
+body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#2C003E,#4B0082);color:#fff;min-height:100vh;}
+#authScreen{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:9999;background:#2C003E;}
+.card{background:#fff;color:#000;padding:40px;border-radius:16px;width:90%;max-width:380px;text-align:center;box-shadow:0 8px 25px rgba(0,0,0,0.3);}
+.card img{height:70px;margin-bottom:20px;}
+input,button{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:none;}
+input{background:#f1f1f1;}
+button{background:#00d478;color:#fff;font-weight:600;cursor:pointer;}
+#googleBtn{background:#4285f4 !important;margin-top:15px;}
+#main{padding:20px;display:none;}
+h3{color:#BDA0FF;}
 </style>
 </head>
 <body>
 
-<!-- SPLASH -->
-<div id="splash"><img src="https://i.imgur.com/jT9Dl9w.png" alt="CharisPay" style="height:140px;animation:pulse 1.5s infinite;"></div>
-
-<!-- AUTH -->
 <div id="authScreen">
   <div class="card">
     <img src="https://i.imgur.com/pG7paVl.png" alt="CharisPay">
     <h3>Welcome to CharisPay</h3>
-    <form id="loginForm"><input type="email" id="loginEmail" placeholder="Email" required><input type="password" id="loginPassword" placeholder="Password" required><button type="submit">Log In</button></form>
-    <form id="signupForm" style="display:none;"><input type="text" id="signupName" placeholder="Full Name" required><input type="email" id="signupEmail" placeholder="Email" required><input type="password" id="signupPassword" placeholder="Password" required><button type="submit">Sign Up</button></form>
+    <form id="loginForm">
+      <input type="email" placeholder="Email" required>
+      <input type="password" placeholder="Password" required>
+      <button type="submit">Log In</button>
+    </form>
+    <button id="googleBtn"><i class="fab fa-google"></i> Sign in with Google</button>
     <p style="margin-top:15px;font-size:14px;">
-      <a href="#" id="showLogin" style="color:#6A0DAD;">Log In</a> |
-      <a href="#" id="showSignup" style="color:#6A0DAD;">Sign Up</a> |
-      <a href="#" id="forgotPass" style="color:#dc3545;">Forgot?</a>
+      <a href="#" id="forgotPass" style="color:#dc3545;">Forgot Password?</a>
     </p>
   </div>
 </div>
 
-<!-- TOP NAV -->
-<div id="topNav">
-  <div class="logo"><img src="https://i.imgur.com/pG7paVl.png" alt="CharisPay"></div>
-  <div class="nav-icons">
-    <div class="nav-icon active" data-section="home" title="Home"><i class="fas fa-home"></i></div>
-    <div class="nav-icon" data-section="dashboard" title="Dashboard"><i class="fas fa-tachometer-alt"></i></div>
-    <div class="nav-icon" data-section="give" title="Give"><i class="fas fa-hand-holding-heart"></i></div>
-    <div class="nav-icon" data-section="statements" title="Statements"><i class="fas fa-file-invoice"></i></div>
-    <div class="nav-icon" data-section="notifications" title="Notifications"><i class="fas fa-bell"></i></div>
-    <div class="nav-icon" data-section="profile" title="Profile"><i class="fas fa-user"></i></div>
-    <div class="nav-icon" data-section="chapterAdmin" id="caTab" style="display:none;" title="Chapter Admin"><i class="fas fa-users-cog"></i></div>
-    <div class="nav-icon" data-section="superAdmin" id="saTab" style="display:none;" title="Super Admin"><i class="fas fa-crown"></i></div>
-    <div class="nav-icon" data-section="help" title="Help"><i class="fas fa-question-circle"></i></div>
-    <div class="nav-icon" id="darkToggle" title="Dark/Light"><i class="fas fa-moon"></i></div>
-    <div class="nav-icon" id="logout" title="Logout"><i class="fas fa-sign-out-alt"></i></div>
-  </div>
-</div>
-
-<!-- MAIN -->
 <div id="main">
-
-  <!-- HOME -->
-  <div class="section" id="home">
-    <h3>Home</h3>
-    <div class="home-card" onclick="navigateTo('dashboard')">
-      <h4>Dashboard</h4>
-      <p>Total Given: KES <strong><span id="homeTotal">0</span></strong> | Chapter: <strong><span id="homeChapter">Not Set</span></strong></p>
-    </div>
-    <div class="home-card" onclick="navigateTo('give')">
-      <h4>Quick Give</h4>
-      <p>Tap to give via Paystack, M-PESA, PayPal</p>
-    </div>
-    <div class="home-card" onclick="navigateTo('statements')">
-      <h4>Recent Statements</h4>
-      <p id="homeStatements">No recent giving</p>
-    </div>
-    <div class="home-card" onclick="navigateTo('notifications')">
-      <h4>Notifications</h4>
-      <p id="homeNotifs">No new notifications</p>
-    </div>
-    <div class="home-card" onclick="navigateTo('profile')">
-      <h4>Profile</h4>
-      <p>Update name, chapter, phone</p>
-    </div>
-  </div>
-
-  <!-- DASHBOARD -->
-  <div class="section" id="dashboard">
-    <h3>Dashboard</h3>
-    <p>Total given: <strong>KES <span id="totalAmount">0</span></strong></p>
-    <p>Chapter: <strong><span id="memberChapter">Not Set</span></strong></p>
-  </div>
-
-  <!-- GIVE -->
-  <div class="section" id="give">
-    <h3>Give</h3>
-    <div id="giveStep1">
-      <label>Giving Type</label>
-      <select id="givingType" required></select>
-      <div id="otherTypeWrapper" style="display:none;"><input type="text" id="otherTypeInput" placeholder="Enter custom type"></div>
-      <label>Amount (KES)</label>
-      <input type="number" id="amount" placeholder="Enter amount" min="1" required>
-      <button id="nextToSummaryBtn">Next</button>
-    </div>
-    <div id="giveStep2" style="display:none;">
-      <h4>Confirm</h4>
-      <p><strong>Type:</strong> <span id="summaryType"></span></p>
-      <p><strong>Amount:</strong> KES <span id="summaryAmount"></span></p>
-      <p><strong>Ref:</strong> <span id="summaryRef"></span></p>
-      <div style="display:flex;flex-direction:column;gap:12px;margin:20px 0;">
-        <button class="paystack" onclick="payWith('paystack')">Paystack</button>
-        <button class="mpesa" onclick="payWith('mpesa_paybill')">M-PESA Paybill</button>
-        <button class="till" onclick="payWith('mpesa_till')">M-PESA Till</button>
-        <button class="airtel" onclick="payWith('airtel')">Airtel</button>
-        <button class="paypal" onclick="payWith('paypal')">PayPal</button>
-      </div>
-      <button onclick="backToStep1()">Edit</button>
-      <button id="printReceiptBtn" style="display:none;background:#28a745;" onclick="printReceipt()">Print</button>
-    </div>
-  </div>
-
-  <!-- STATEMENTS -->
-  <div class="section" id="statements">
-    <h3>Statements</h3>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <input type="date" id="filterStart">
-      <input type="date" id="filterEnd">
-      <button onclick="applyFilter()">Filter</button>
-      <button onclick="resetFilter()">Reset</button>
-    </div>
-    <table><thead><tr><th>Date</th><th>Ref</th><th>Type</th><th>Amount</th></tr></thead><tbody id="statementBody"></tbody></table>
-  </div>
-
-  <!-- NOTIFICATIONS -->
-  <div class="section" id="notifications">
-    <h3>Notifications</h3>
-    <div id="notificationsList" style="max-height:400px;overflow-y:auto;"></div>
-  </div>
-
-  <!-- PROFILE -->
-  <div class="section" id="profile">
-    <h3>Profile</h3>
-    <label>Name</label><input id="profileName">
-    <label>Email</label><input id="profileEmail" disabled>
-    <label>Chapter</label><select id="profileChapter"></select>
-    <div id="otherChapterWrapper" style="display:none;"><input type="text" id="otherChapterInput" placeholder="Enter chapter"></div>
-    <label>Phone</label><input id="profilePhone">
-    <button onclick="saveProfile()">Save</button>
-  </div>
-
-  <!-- CHAPTER ADMIN -->
-  <div class="section" id="chapterAdmin">
-    <h3>Chapter Admin – <span id="caChapterName"></span></h3>
-    <button onclick="loadChapterMembers()">View Members</button>
-    <div id="chapterMembersList" style="margin-top:15px;"></div>
-  </div>
-
-  <!-- SUPER ADMIN -->
-  <div class="section" id="superAdmin">
-    <h3>Super Admin</h3>
-
-    <!-- Add Chapter -->
-    <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;margin-bottom:15px;">
-      <h4>Add Chapter</h4>
-      <input type="text" id="newChapterName" placeholder="Chapter name">
-      <button onclick="addChapter()">Add</button>
-    </div>
-
-    <!-- Add Global Giving Type -->
-    <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;margin-bottom:15px;">
-      <h4>Add Global Giving Type</h4>
-      <input type="text" id="newGlobalType" placeholder="Type name">
-      <button onclick="addGivingType(false)">Add</button>
-    </div>
-
-    <!-- Promote Admin -->
-    <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;margin-bottom:15px;">
-      <h4>Promote Chapter Admin</h4>
-      <input type="email" id="adminEmail" placeholder="Member email">
-      <select id="adminChapter"></select>
-      <button onclick="promoteAdmin()">Promote</button>
-    </div>
-
-    <!-- Manage Chapters -->
-    <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;margin-bottom:15px;">
-      <h4>Manage Chapters</h4>
-      <div id="chaptersList"></div>
-    </div>
-
-    <!-- Manage Admins -->
-    <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;">
-      <h4>Manage Chapter Admins</h4>
-      <div id="adminsList"></div>
-    </div>
-  </div>
-
-  <!-- HELP -->
-  <div class="section" id="help">
-    <h3>Help</h3>
-    <p>0715909038</p>
-    <p>charisministriesintl22@gmail.com</p>
-  </div>
+  <h3>Dashboard</h3>
+  <p>Welcome, <strong><span id="userEmail"></span></strong>!</p>
+  <button onclick="supabase.auth.signOut().then(()=>location.reload())">Logout</button>
 </div>
 
-<footer>CharisAppStore2025</footer>
-<div id="toast"></div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-const supabase = createClient('https://gbuqxitxyezjptyeveud.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdidXF4aXR4eWV6anB0eWV2ZXVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NTQ2NzQsImV4cCI6MjA3NzIzMDY3NH0.hiagI1wklBr-LJgDho4srBk7ObH7NozwaKXNJbFzqWc');
+const supabase = window.supabase.createClient(
+  'https://gbuqxitxyezjptyeveud.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdidXF4aXR4eWV6anB0eWV2ZXVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NTQ2NzQsImV4cCI6MjA3NzIzMDY3NH0.hiagI1wklBr-LJgDho4srBk7ObH7NozwaKXNJbFzqWc'
+);
 
-let currentUser = null, giveData = {}, offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
-const PAYSTACK_KEY = 'pk_live_29beec3fe9fadec25009d17902b92a637ea615bb';
+document.getElementById('loginForm').onsubmit = async e => {
+  e.preventDefault();
+  const email = e.target[0].value, pass = e.target[1].value;
+  const { error } = await supabase.auth.signInWithPassword({email, password: pass});
+  if (error) alert(error.message);
+  else initApp();
+};
 
-window.addEventListener('load', async () => {
-  const splash = document.getElementById('splash'), auth = document.getElementById('authScreen');
-  setTimeout(() => { splash.style.opacity='0'; setTimeout(() => { splash.style.display='none'; auth.style.opacity='1'; }, 800); }, 3000);
+document.getElementById('googleBtn').onclick = () => {
+  supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin }
+  });
+};
 
-  document.getElementById('showLogin').onclick = e => { e.preventDefault(); document.getElementById('loginForm').style.display='block'; document.getElementById('signupForm').style.display='none'; };
-  document.getElementById('showSignup').onclick = e => { e.preventDefault(); document.getElementById('signupForm').style.display='block'; document.getElementById('loginForm').style.display='none'; };
-  document.getElementById('forgotPass').onclick = e => { e.preventDefault(); const email = prompt('Email'); if(email) supabase.auth.resetPasswordForEmail(email).then(()=>toast('Sent')).catch(()=>toast('Error')); };
+document.getElementById('forgotPass').onclick = e => {
+  e.preventDefault();
+  const email = prompt('Enter your email');
+  if (email) {
+    supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
+      .then(() => alert('Check your email!'))
+      .catch(err => alert(err.message));
+  }
+};
 
-  document.getElementById('loginForm').onsubmit = async e => { e.preventDefault(); const {error} = await supabase.auth.signInWithPassword({email:document.getElementById('loginEmail').value,password:document.getElementById('loginPassword').value}); if(error) toast(error.message); else await initApp(); };
-  document.getElementById('signupForm').onsubmit = async e => { e.preventDefault(); const name=document.getElementById('signupName').value.trim(),email=document.getElementById('signupEmail').value.trim(),pass=document.getElementById('signupPassword').value; if(pass.length<6) return toast('Password ≥6'); const {data,error}=await supabase.auth.signUp({email,password:pass}); if(error) return toast(error.message); await supabase.from('members').insert({id:data.user.id,email,name,role:'member'}); toast('Confirm email!'); };
-
-  const {data:{user}} = await supabase.auth.getUser(); if(user) { splash.style.display='none'; auth.style.display='none'; await initApp(); }
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN') initApp();
 });
 
 async function initApp() {
-  document.getElementById('authScreen').style.display='none';
-  await loadUser();
-  showSection('home');
-  setupUI();
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+  const { data: { user } } = await supabase.auth.getUser();
+  document.getElementById('userEmail').textContent = user.email;
 }
 
-async function loadUser() {
-  const {data:{user}} = await supabase.auth.getUser(); if(!user) return;
-  const {data:profile} = await supabase.from('members').select('*').eq('id',user.id).single();
-  currentUser = {id:profile.id,email:profile.email,name:profile.name,chapter_id:profile.chapter_id,role:profile.role||'member',total_giving:profile.total_giving||0,phone:profile.phone||''};
-  localStorage.setItem('charisUser', JSON.stringify(currentUser));
-  await loadAppData();
-}
-
-async function loadAppData() {
-  const [{data:types},{data:chapters},{data:members}] = await Promise.all([
-    supabase.from('giving_types').select('id,name').order('name'),
-    supabase.from('chapters').select('id,name').order('name'),
-    supabase.from('members').select('id,email,role,chapter_id')
-  ]);
-
-  const typeOpts = [{v:'',t:'Select'},...types.map(t=>({v:t.id,t:t.name})),...["Tithe","Offering","Pledge","Seed","Building"].map(t=>({v:'custom_'+t,t:t})),{v:'other',t:'Other'}];
-  const chapterOpts = [{v:'',t:'Select'},...chapters.map(c=>({v:c.id,t:c.name})),...["Gretsa","MKU","Mlolongo"].map(c=>({v:'custom_'+c,t:c})),{v:'other',t:'Other'}];
-
-  populate('#givingType', typeOpts);
-  populate('#profileChapter', chapterOpts);
-  populate('#adminChapter', chapterOpts);
-
-  document.getElementById('profileName').value = currentUser.name || '';
-  document.getElementById('profileEmail').value = currentUser.email || '';
-  document.getElementById('profilePhone').value = currentUser.phone || '';
-  if(currentUser.chapter_id) document.getElementById('profileChapter').value = currentUser.chapter_id;
-
-  if(currentUser.role === 'chapter_admin') { 
-    document.getElementById('caTab').style.display='flex'; 
-    const {data} = await supabase.from('chapters').select('name').eq('id',currentUser.chapter_id).single();
-    document.getElementById('caChapterName').textContent = data?.name || 'Unknown';
-  }
-  if(currentUser.role === 'super_admin') {
-    document.getElementById('saTab').style.display='flex';
-    loadSuperAdmin();
-  }
-
-  await Promise.all([loadDashboard(), loadStatements(), loadHomeSummary()]);
-}
-
-function setupUI() {
-  document.querySelectorAll('.nav-icon').forEach(el => {
-    el.onclick = () => {
-      document.querySelectorAll('.nav-icon').forEach(e => e.classList.remove('active'));
-      el.classList.add('active');
-      showSection(el.dataset.section);
-    };
-  });
-  document.getElementById('darkToggle').onclick = () => document.body.classList.toggle('light');
-  document.getElementById('logout').onclick = async () => { await supabase.auth.signOut(); localStorage.removeItem('charisUser'); location.reload(); };
-  document.getElementById('givingType').onchange = () => document.getElementById('otherTypeWrapper').style.display = this.value === 'other' ? 'block' : 'none';
-  document.getElementById('profileChapter').onchange = () => document.getElementById('otherChapterWrapper').style.display = this.value === 'other' ? 'block' : 'none';
-  document.getElementById('nextToSummaryBtn').onclick = nextToSummary;
-}
-
-function showSection(id) {
-  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-  const el = document.getElementById(id);
-  if (el) el.style.display = 'block';
-  if (id === 'home') loadHomeSummary();
-  if (id === 'superAdmin') loadSuperAdmin();
-}
-
-function navigateTo(section) {
-  const tab = document.querySelector(`.nav-icon[data-section="${section}"]`);
-  if (tab) tab.click();
-}
-
-// FIXED: NEVER SEND STRING TO UUID COLUMN
-function nextToSummary() {
-  let typeId = document.getElementById('givingType').value;
-  let typeName = document.querySelector('#givingType option:checked').textContent;
-
-  if (typeId.startsWith('custom_') || typeId === 'other') {
-    typeName = typeId === 'other' ? document.getElementById('otherTypeInput').value.trim() : typeId.replace('custom_', '');
-    if (!typeName) return toast('Enter type name');
-    typeId = null; // DO NOT SEND STRING TO UUID
-  }
-
-  const amount = parseFloat(document.getElementById('amount').value);
-  if (!amount || amount < 1) return toast('Valid amount');
-
-  giveData = { typeId, typeName, amount };
-  document.getElementById('summaryType').textContent = typeName;
-  document.getElementById('summaryAmount').textContent = amount.toLocaleString();
-  document.getElementById('giveStep1').style.display = 'none';
-  document.getElementById('giveStep2').style.display = 'block';
-}
-
-function backToStep1() {
-  document.getElementById('giveStep1').style.display = 'block';
-  document.getElementById('giveStep2').style.display = 'none';
-  document.getElementById('printReceiptBtn').style.display = 'none';
-}
-
-// PAYSTACK WORKS — NO UUID ERROR
-window.payWith = async method => {
-  const amount = giveData.amount;
-  const ref = generateRef(giveData.typeName);
-  
-  const record = { 
-    member_id: currentUser.id, 
-    type_id: giveData.typeId, // NULL if custom
-    type_name: giveData.typeName, // ALWAYS string
-    amount, 
-    method, 
-    ref, 
-    created_at: new Date().toISOString() 
-  };
-
-  if (navigator.onLine) {
-    const {error} = await supabase.from('giving').insert(record);
-    if (error) return toast(error.message);
-    await supabase.from('members').update({ total_giving: currentUser.total_giving + amount }).eq('id',currentUser.id);
-  } else {
-    offlineQueue.push({ table: 'giving', action: 'insert', data: record });
-    localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
-    toast('Offline: Will sync');
-  }
-
-  document.getElementById('summaryRef').textContent = ref;
-  document.getElementById('printReceiptBtn').style.display = 'block';
-
-  if (method === 'paystack') {
-    PaystackPop.setup({
-      key: PAYSTACK_KEY,
-      email: currentUser.email,
-      amount: amount * 100,
-      currency: 'KES',
-      ref,
-      callback: () => toast('Success'),
-      onClose: () => toast('Cancelled')
-    }).openIframe();
-    return;
-  }
-
-  setTimeout(() => { loadDashboard(); loadStatements(); loadHomeSummary(); }, 3000);
-};
-
-window.saveProfile = async () => {
-  const name = document.getElementById('profileName').value.trim();
-  const phone = document.getElementById('profilePhone').value.trim();
-  let chapter_id = document.getElementById('profileChapter').value;
-  if (chapter_id.startsWith('custom_') || chapter_id === 'other') chapter_id = null;
-
-  if (!name) return toast('Name required');
-  const { error } = await supabase.from('members').update({ name, phone, chapter_id }).eq('id', currentUser.id);
-  if (error) return toast(error.message);
-
-  currentUser.name = name; currentUser.phone = phone; currentUser.chapter_id = chapter_id;
-  localStorage.setItem('charisUser', JSON.stringify(currentUser));
-  toast('Saved!');
-};
-
-// SUPER ADMIN: DELETE CHAPTER
-window.deleteChapter = async (id) => {
-  if (!confirm('Delete chapter?')) return;
-  const {error} = await supabase.from('chapters').delete().eq('id', id);
-  if (error) return toast(error.message);
-  toast('Deleted');
-  loadSuperAdmin();
-};
-
-// SUPER ADMIN: REMOVE ADMIN
-window.removeAdmin = async (memberId) => {
-  if (!confirm('Remove admin?')) return;
-  const {error} = await supabase.from('members').update({ role: 'member', chapter_id: null }).eq('id', memberId);
-  if (error) return toast(error.message);
-  toast('Removed');
-  loadSuperAdmin();
-};
-
-async function loadSuperAdmin() {
-  const {data:chapters} = await supabase.from('chapters').select('id,name');
-  const {data:admins} = await supabase.from('members').select('id,email,chapter_id').eq('role','chapter_admin');
-
-  document.getElementById('chaptersList').innerHTML = chapters.map(c => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
-      <span>${c.name}</span>
-      <button class="danger" onclick="deleteChapter('${c.id}')">Delete</button>
-    </div>
-  `).join('');
-
-  document.getElementById('adminsList').innerHTML = admins.map(a => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
-      <span>${a.email}</span>
-      <button class="danger" onclick="removeAdmin('${a.id}')">Remove</button>
-    </div>
-  `).join('');
-}
-
-window.addChapter = async () => {
-  const name = document.getElementById('newChapterName').value.trim();
-  if (!name) return toast('Name required');
-  const {error} = await supabase.from('chapters').insert({name});
-  if (error) return toast(error.message);
-  toast('Added');
-  document.getElementById('newChapterName').value = '';
-  loadAppData();
-};
-
-window.addGivingType = async (isChapter) => {
-  const input = isChapter ? 'newChapterType' : 'newGlobalType';
-  const name = document.getElementById(input).value.trim();
-  if (!name) return toast('Name required');
-  const {error} = await supabase.from('giving_types').insert({name, is_chapter: isChapter});
-  if (error) return toast(error.message);
-  toast('Added');
-  document.getElementById(input).value = '';
-  loadAppData();
-};
-
-window.promoteAdmin = async () => {
-  const email = document.getElementById('adminEmail').value.trim();
-  const chapter_id = document.getElementById('adminChapter').value;
-  if (!email || !chapter_id) return toast('Fill all');
-  const {data:member} = await supabase.from('members').select('id').eq('email',email).single();
-  if (!member) return toast('Not found');
-  const {error} = await supabase.from('members').update({role:'chapter_admin',chapter_id}).eq('id',member.id);
-  if (error) return toast(error.message);
-  toast('Promoted');
-};
-
-async function loadDashboard() {
-  const {data} = await supabase.from('members').select('total_giving').eq('id',currentUser.id).single();
-  currentUser.total_giving = data.total_giving || 0;
-  document.getElementById('totalAmount').textContent = currentUser.total_giving.toLocaleString();
-  const ch = currentUser.chapter_id ? (await supabase.from('chapters').select('name').eq('id',currentUser.chapter_id).single()).data?.name : 'Not Set';
-  document.getElementById('memberChapter').textContent = ch;
-}
-
-async function loadStatements() {
-  let query = supabase.from('giving').select('created_at,ref,type_name,amount').eq('member_id',currentUser.id).order('created_at',{ascending:false});
-  const start = document.getElementById('filterStart').value, end = document.getElementById('filterEnd').value;
-  if(start) query = query.gte('created_at',start+'T00:00:00');
-  if(end) query = query.lte('created_at',end+'T23:59:59');
-  const {data} = await query;
-  const tbody = document.getElementById('statementBody');
-  tbody.innerHTML = (data||[]).map(g=>`<tr><td>${new Date(g.created_at).toLocaleDateString()}</td><td>${g.ref}</td><td>${g.type_name || 'Custom'}</td><td>KES ${g.amount}</td></tr>`).join('');
-}
-window.applyFilter = loadStatements;
-window.resetFilter = () => { document.getElementById('filterStart').value=''; document.getElementById('filterEnd').value=''; loadStatements(); };
-
-async function loadHomeSummary() {
-  const total = currentUser.total_giving.toLocaleString();
-  const ch = currentUser.chapter_id ? (await supabase.from('chapters').select('name').eq('id',currentUser.chapter_id).single()).data?.name : 'Not Set';
-  document.getElementById('homeTotal').textContent = total;
-  document.getElementById('homeChapter').textContent = ch;
-
-  const {data:recent} = await supabase.from('giving').select('ref,type_name,amount,created_at').eq('member_id',currentUser.id).order('created_at',{ascending:false}).limit(1);
-  document.getElementById('homeStatements').innerHTML = recent?.length ? `<strong>${recent[0].type_name}</strong>: KES ${recent[0].amount} on ${new Date(recent[0].created_at).toLocaleDateString()}` : 'No recent giving';
-}
-
-function printReceipt() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  doc.setFontSize(16); doc.text('CharisPay Receipt', 105, 20, 'center');
-  doc.setFontSize(12); doc.text(`Ref: ${document.getElementById('summaryRef').textContent}`, 20, 40);
-  doc.text(`Type: ${document.getElementById('summaryType').textContent}`, 20, 50);
-  doc.text(`Amount: KES ${document.getElementById('summaryAmount').textContent}`, 20, 60);
-  doc.text(`Date: ${new Date().toLocaleString()}`, 20, 70);
-  doc.text('Thank you!', 20, 90);
-  doc.save(`Receipt_${document.getElementById('summaryRef').textContent}.pdf`);
-}
-
-function populate(sel, items) {
-  const el = document.querySelector(sel);
-  el.innerHTML = '';
-  items.forEach(i => {
-    const o = document.createElement('option');
-    o.value = i.v; o.textContent = i.t;
-    el.appendChild(o);
-  });
-}
-
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-function generateRef(type) {
-  const year = new Date().getFullYear().toString().slice(-2);
-  const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
-  const initials = type.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
-  return `IC1${rand}AB${year}${initials}`;
-}
+// Auto-login if session exists
+supabase.auth.getSession().then(({ data }) => {
+  if (data.session) initApp();
+});
 </script>
 </body>
 </html>
