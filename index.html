@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CharisPay</title>
 
+<!-- ✅ Add this CSP meta tag right here -->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self' blob: data: https://*.paystack.com https://*.google.com https://*.googletagmanager.com https://applepay.cdn-apple.com;
+               script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.paystack.com https://www.googletagmanager.com;
+               style-src 'self' 'unsafe-inline';
+               img-src 'self' data: https:;
+               frame-src https://*.paystack.com https://*.google.com https://*.apple.com;">
+
 <!-- PWA -->
 <meta name="theme-color" content="#4B0082">
 <link rel="manifest" href="manifest.json">
@@ -19,6 +27,7 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#2C003E,#4B0082);color:#fff;overflow-x:hidden;min-height:100vh;}
 a{color:inherit;text-decoration:none;}
+
 
 /* TOP NAV */
 #topNav {
