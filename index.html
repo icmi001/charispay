@@ -112,7 +112,15 @@ footer {
     <img src="https://i.imgur.com/pG7paVl.png" alt="CharisPay">
     <h3>Welcome to CharisPay</h3>
     <form id="loginForm"><input type="email" id="loginEmail" placeholder="Email" required><input type="password" id="loginPassword" placeholder="Password" required><button type="submit">Log In</button></form>
-    <form id="signupForm" style="display:none;"><input type="text" id="signupName" placeholder="Full Name" required><input type="email" id="signupEmail" placeholder="Email" required><input type="password" id="signupPassword" placeholder="Password" required><button type="submit">Sign Up</button></form>
+    <!-- SIGNUP FORM -->
+    <form id="signupForm" style="display:none;">
+      <input type="text" id="signupName" placeholder="Full Name" required>
+      <select id="signupChapter" required></select>
+      <input type="email" id="signupEmail" placeholder="Email" required>
+      <input type="tel" id="signupPhone" placeholder="Phone Number" required>
+      <input type="password" id="signupPassword" placeholder="Password" required>
+      <button type="submit">Sign Up</button>
+    </form>
     <p style="margin-top:15px;font-size:14px;">
       <a href="#" id="showLogin" style="color:#6A0DAD;">Log In</a> |
       <a href="#" id="showSignup" style="color:#6A0DAD;">Sign Up</a> |
@@ -202,23 +210,23 @@ footer {
     </div>
   </div>
 
- <!-- STATEMENTS --> 
-<div class="section" id="statements">
-  <h3>Statements</h3>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
-    <input type="date" id="filterStart">
-    <input type="date" id="filterEnd">
-    <button onclick="applyFilter()">Filter</button>
-    <button onclick="resetFilter()">Reset</button>
-    <button id="printStatementsBtn" onclick="printStatements()" style="background:#6A0DAD;color:#fff;margin-top:10px;">Print Statements</button>
+  <!-- STATEMENTS --> 
+  <div class="section" id="statements">
+    <h3>Statements</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <input type="date" id="filterStart">
+      <input type="date" id="filterEnd">
+      <button onclick="applyFilter()">Filter</button>
+      <button onclick="resetFilter()">Reset</button>
+      <button id="printStatementsBtn" onclick="printStatements()" style="background:#6A0DAD;color:#fff;margin-top:10px;">Print Statements</button>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Ref</th><th>Type</th><th>Amount</th></tr>
+      </thead>
+      <tbody id="statementBody"></tbody>
+    </table>
   </div>
-  <table>
-    <thead>
-      <tr><th>Date</th><th>Ref</th><th>Type</th><th>Amount</th></tr>
-    </thead>
-    <tbody id="statementBody"></tbody>
-  </table>
-</div>
 
   <!-- NOTIFICATIONS -->
   <div class="section" id="notifications">
@@ -240,13 +248,28 @@ footer {
   <!-- CHAPTER ADMIN -->
   <div class="section" id="chapterAdmin">
     <h3>Chapter Admin – <span id="caChapterName"></span></h3>
-    <button onclick="loadChapterMembers()">View Members</button>
-    <div id="chapterMembersList" style="margin-top:15px;"></div>
+    <button onclick="loadChapterReport()">View Chapter Report</button>
+    <div id="chapterReport" style="margin-top:15px;"></div>
   </div>
 
   <!-- SUPER ADMIN -->
   <div class="section" id="superAdmin">
     <h3>Super Admin</h3>
+
+    <!-- Global Report -->
+    <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;margin-bottom:15px;">
+      <h4>Global Giving Report</h4>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <input type="text" id="globalFilterName" placeholder="Name">
+        <select id="globalFilterType"></select>
+        <input type="date" id="globalFilterStart">
+        <input type="date" id="globalFilterEnd">
+        <select id="globalFilterChapter"></select>
+        <button onclick="loadGlobalReport()">Filter</button>
+        <button onclick="resetGlobalFilter()">Reset</button>
+      </div>
+      <div id="globalReport" style="margin-top:15px;"></div>
+    </div>
 
     <!-- Add Chapter -->
     <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;margin-bottom:15px;">
@@ -304,6 +327,9 @@ const supabase = createClient('https://gbuqxitxyezjptyeveud.supabase.co', 'eyJhb
 let currentUser = null, giveData = {}, offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
 const PAYSTACK_KEY = 'pk_live_29beec3fe9fadec25009d17902b92a637ea615bb';
 
+// LOAD CHAPTERS FOR SIGNUP — EVEN BEFORE LOGIN
+loadAppData();
+
 window.addEventListener('load', async () => {
   const splash = document.getElementById('splash'), auth = document.getElementById('authScreen');
   setTimeout(() => { splash.style.opacity='0'; setTimeout(() => { splash.style.display='none'; auth.style.opacity='1'; }, 800); }, 3000);
@@ -313,7 +339,21 @@ window.addEventListener('load', async () => {
   document.getElementById('forgotPass').onclick = e => { e.preventDefault(); const email = prompt('Email'); if(email) supabase.auth.resetPasswordForEmail(email).then(()=>toast('Sent')).catch(()=>toast('Error')); };
 
   document.getElementById('loginForm').onsubmit = async e => { e.preventDefault(); const {error} = await supabase.auth.signInWithPassword({email:document.getElementById('loginEmail').value,password:document.getElementById('loginPassword').value}); if(error) toast(error.message); else await initApp(); };
-  document.getElementById('signupForm').onsubmit = async e => { e.preventDefault(); const name=document.getElementById('signupName').value.trim(),email=document.getElementById('signupEmail').value.trim(),pass=document.getElementById('signupPassword').value; if(pass.length<6) return toast('Password ≥6'); const {data,error}=await supabase.auth.signUp({email,password:pass}); if(error) return toast(error.message); await supabase.from('members').insert({id:data.user.id,email,name,role:'member'}); toast('Confirm email!'); };
+
+  document.getElementById('signupForm').onsubmit = async e => {
+    e.preventDefault();
+    const name = document.getElementById('signupName').value.trim();
+    const chapter_id = document.getElementById('signupChapter').value;
+    const email = document.getElementById('signupEmail').value.trim();
+    const phone = document.getElementById('signupPhone').value.trim();
+    const pass = document.getElementById('signupPassword').value;
+    if (pass.length < 6) return toast('Password ≥6');
+    if (!name || !email || !phone || !chapter_id) return toast('Fill all fields');
+    const {data, error} = await supabase.auth.signUp({email, password: pass});
+    if (error) return toast(error.message);
+    await supabase.from('members').insert({id: data.user.id, email, name, phone, chapter_id, role: 'member'});
+    toast('Confirm your email!');
+  };
 
   const {data:{user}} = await supabase.auth.getUser(); if(user) { splash.style.display='none'; auth.style.display='none'; await initApp(); }
 });
@@ -330,39 +370,45 @@ async function loadUser() {
   const {data:profile} = await supabase.from('members').select('*').eq('id',user.id).single();
   currentUser = {id:profile.id,email:profile.email,name:profile.name,chapter_id:profile.chapter_id,role:profile.role||'member',total_giving:profile.total_giving||0,phone:profile.phone||''};
   localStorage.setItem('charisUser', JSON.stringify(currentUser));
-  await loadAppData();
+  await loadAppData(); // Re-run to update UI
 }
 
 async function loadAppData() {
-  const [{data:types},{data:chapters},{data:members}] = await Promise.all([
+  const [{data:types},{data:chapters}] = await Promise.all([
     supabase.from('giving_types').select('id,name').order('name'),
-    supabase.from('chapters').select('id,name').order('name'),
-    supabase.from('members').select('id,email,role,chapter_id')
+    supabase.from('chapters').select('id,name').order('name')
   ]);
 
   const typeOpts = [{v:'',t:'Select'},...types.map(t=>({v:t.id,t:t.name})),...["Tithe","Offering","Pledge","Seed","Building"].map(t=>({v:'custom_'+t,t:t})),{v:'other',t:'Other'}];
-  const chapterOpts = [{v:'',t:'Select'},...chapters.map(c=>({v:c.id,t:c.name})),...["Gretsa","MKU","Mlolongo"].map(c=>({v:'custom_'+c,t:c})),{v:'other',t:'Other'}];
+  
+  // ONLY REAL CHAPTERS — NO HARDCODED
+  const chapterOpts = [{v:'',t:'Select Chapter'}, ...chapters.map(c => ({v: c.id, t: c.name}))];
 
   populate('#givingType', typeOpts);
   populate('#profileChapter', chapterOpts);
   populate('#adminChapter', chapterOpts);
+  populate('#signupChapter', chapterOpts);
+  populate('#globalFilterType', typeOpts);
+  populate('#globalFilterChapter', chapterOpts);
 
-  document.getElementById('profileName').value = currentUser.name || '';
-  document.getElementById('profileEmail').value = currentUser.email || '';
-  document.getElementById('profilePhone').value = currentUser.phone || '';
-  if(currentUser.chapter_id) document.getElementById('profileChapter').value = currentUser.chapter_id;
+  if (currentUser) {
+    document.getElementById('profileName').value = currentUser.name || '';
+    document.getElementById('profileEmail').value = currentUser.email || '';
+    document.getElementById('profilePhone').value = currentUser.phone || '';
+    if(currentUser.chapter_id) document.getElementById('profileChapter').value = currentUser.chapter_id;
 
-  if(currentUser.role === 'chapter_admin') { 
-    document.getElementById('caTab').style.display='flex'; 
-    const {data} = await supabase.from('chapters').select('name').eq('id',currentUser.chapter_id).single();
-    document.getElementById('caChapterName').textContent = data?.name || 'Unknown';
+    if(currentUser.role === 'chapter_admin') { 
+      document.getElementById('caTab').style.display='flex'; 
+      const {data} = await supabase.from('chapters').select('name').eq('id',currentUser.chapter_id).single();
+      document.getElementById('caChapterName').textContent = data?.name || 'Unknown';
+    }
+    if(currentUser.role === 'super_admin') {
+      document.getElementById('saTab').style.display='flex';
+      loadSuperAdmin();
+    }
+
+    await Promise.all([loadDashboard(), loadStatements(), loadHomeSummary()]);
   }
-  if(currentUser.role === 'super_admin') {
-    document.getElementById('saTab').style.display='flex';
-    loadSuperAdmin();
-  }
-
-  await Promise.all([loadDashboard(), loadStatements(), loadHomeSummary()]);
 }
 
 function setupUI() {
@@ -386,6 +432,7 @@ function showSection(id) {
   if (el) el.style.display = 'block';
   if (id === 'home') loadHomeSummary();
   if (id === 'superAdmin') loadSuperAdmin();
+  if (id === 'chapterAdmin') loadChapterReport();
 }
 
 function navigateTo(section) {
@@ -393,7 +440,6 @@ function navigateTo(section) {
   if (tab) tab.click();
 }
 
-// FIXED: NEVER SEND STRING TO UUID COLUMN
 function nextToSummary() {
   let typeId = document.getElementById('givingType').value;
   let typeName = document.querySelector('#givingType option:checked').textContent;
@@ -401,7 +447,7 @@ function nextToSummary() {
   if (typeId.startsWith('custom_') || typeId === 'other') {
     typeName = typeId === 'other' ? document.getElementById('otherTypeInput').value.trim() : typeId.replace('custom_', '');
     if (!typeName) return toast('Enter type name');
-    typeId = null; // DO NOT SEND STRING TO UUID
+    typeId = null;
   }
 
   const amount = parseFloat(document.getElementById('amount').value);
@@ -420,15 +466,14 @@ function backToStep1() {
   document.getElementById('printReceiptBtn').style.display = 'none';
 }
 
-// PAYSTACK WORKS — NO UUID ERROR
 window.payWith = async method => {
   const amount = giveData.amount;
   const ref = generateRef(giveData.typeName);
   
   const record = { 
     member_id: currentUser.id, 
-    type_id: giveData.typeId, // NULL if custom
-    type_name: giveData.typeName, // ALWAYS string
+    type_id: giveData.typeId,
+    type_name: giveData.typeName,
     amount, 
     method, 
     ref, 
@@ -479,7 +524,6 @@ window.saveProfile = async () => {
   toast('Saved!');
 };
 
-// SUPER ADMIN: DELETE CHAPTER
 window.deleteChapter = async (id) => {
   if (!confirm('Delete chapter?')) return;
   const {error} = await supabase.from('chapters').delete().eq('id', id);
@@ -488,7 +532,6 @@ window.deleteChapter = async (id) => {
   loadSuperAdmin();
 };
 
-// SUPER ADMIN: REMOVE ADMIN
 window.removeAdmin = async (memberId) => {
   if (!confirm('Remove admin?')) return;
   const {error} = await supabase.from('members').update({ role: 'member', chapter_id: null }).eq('id', memberId);
@@ -523,7 +566,7 @@ window.addChapter = async () => {
   if (error) return toast(error.message);
   toast('Added');
   document.getElementById('newChapterName').value = '';
-  loadAppData();
+  loadAppData(); // Refresh dropdowns
 };
 
 window.addGivingType = async (isChapter) => {
@@ -578,54 +621,107 @@ async function loadHomeSummary() {
   document.getElementById('homeStatements').innerHTML = recent?.length ? `<strong>${recent[0].type_name}</strong>: KES ${recent[0].amount} on ${new Date(recent[0].created_at).toLocaleDateString()}` : 'No recent giving';
 }
 
+window.loadChapterReport = async () => {
+  const chapterId = currentUser.chapter_id;
+  let query = supabase.from('giving')
+    .select('giving.created_at, giving.ref, giving.type_name, giving.amount, members.name')
+    .eq('members.chapter_id', chapterId)
+    .innerJoin('members', 'members.id', 'giving.member_id')
+    .order('giving.created_at', { ascending: false });
+
+  const name = document.getElementById('chapterFilterName')?.value.trim();
+  const type = document.getElementById('chapterFilterType')?.value;
+  const start = document.getElementById('chapterFilterStart')?.value;
+  const end = document.getElementById('chapterFilterEnd')?.value;
+
+  if (name) query = query.ilike('members.name', `%${name}%`);
+  if (type && type !== '') query = query.eq('giving.type_name', type);
+  if (start) query = query.gte('giving.created_at', start + 'T00:00:00');
+  if (end) query = query.lte('giving.created_at', end + 'T23:59:59');
+
+  const { data } = await query;
+  const container = document.getElementById('chapterReport');
+  if (!data || data.length === 0) return container.innerHTML = '<p>No records</p>';
+
+  let html = `<table><thead><tr><th>Name</th><th>Date</th><th>Ref</th><th>Type</th><th>Amount</th></tr></thead><tbody>`;
+  data.forEach(g => {
+    html += `<tr><td>${g.name}</td><td>${new Date(g.created_at).toLocaleDateString()}</td><td>${g.ref}</td><td>${g.type_name}</td><td>KES ${g.amount}</td></tr>`;
+  });
+  html += `</tbody></table>`;
+  container.innerHTML = html;
+};
+
+window.loadGlobalReport = async () => {
+  let query = supabase.from('giving')
+    .select('giving.*, members.name, members.email, chapters.name as chapter_name')
+    .innerJoin('members', 'members.id', 'giving.member_id')
+    .leftJoin('chapters', 'chapters.id', 'members.chapter_id')
+    .order('giving.created_at', { ascending: false });
+
+  const name = document.getElementById('globalFilterName').value.trim();
+  const type = document.getElementById('globalFilterType').value;
+  const start = document.getElementById('globalFilterStart').value;
+  const end = document.getElementById('globalFilterEnd').value;
+  const chapter = document.getElementById('globalFilterChapter').value;
+
+  if (name) query = query.ilike('members.name', `%${name}%`);
+  if (type && type !== '') query = query.eq('giving.type_name', type);
+  if (start) query = query.gte('giving.created_at', start + 'T00:00:00');
+  if (end) query = query.lte('giving.created_at', end + 'T23:59:59');
+  if (chapter && chapter !== '') query = query.eq('members.chapter_id', chapter);
+
+  const { data } = await query;
+  const container = document.getElementById('globalReport');
+  if (!data || data.length === 0) return container.innerHTML = '<p>No records</p>';
+
+  let html = `<table><thead><tr><th>Name</th><th>Chapter</th><th>Date</th><th>Ref</th><th>Type</th><th>Amount</th></tr></thead><tbody>`;
+  data.forEach(g => {
+    html += `<tr><td>${g.name}</td><td>${g.chapter_name || 'None'}</td><td>${new Date(g.created_at).toLocaleDateString()}</td><td>${g.ref}</td><td>${g.type_name}</td><td>KES ${g.amount}</td></tr>`;
+  });
+  html += `</tbody></table>`;
+  container.innerHTML = html;
+};
+
+window.resetGlobalFilter = () => {
+  document.getElementById('globalFilterName').value = '';
+  document.getElementById('globalFilterType').value = '';
+  document.getElementById('globalFilterStart').value = '';
+  document.getElementById('globalFilterEnd').value = '';
+  document.getElementById('globalFilterChapter').value = '';
+  loadGlobalReport();
+};
+
 function printReceipt() {
-const { jsPDF } = window.jspdf;
+  const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-
-  // --- WHITE HEADER BACKGROUND (so purple logo pops) ---
   doc.setFillColor(255, 255, 255); 
-  doc.rect(0, 0, 210, 40, 'F'); // x, y, width, height, fill
-
-  // --- LOGO ---
+  doc.rect(0, 0, 210, 40, 'F');
   const logoUrl = 'https://i.imgur.com/pG7paVl.png';
   const imgWidth = 50;  
   const imgHeight = 20; 
   doc.addImage(logoUrl, 'PNG', (210 - imgWidth) / 2, 10, imgWidth, imgHeight);
-
-  // --- TITLE BELOW LOGO ---
   doc.setFontSize(18);
-  doc.setTextColor(0, 0, 0); // black text
+  doc.setTextColor(0, 0, 0);
   doc.text('CharisPay Receipt', 105, 55, 'center');
-
-  // --- LIGHT PURPLE UNDERLINE ---
-  doc.setDrawColor(138, 43, 226); // light purple (BlueViolet)
+  doc.setDrawColor(138, 43, 226);
   doc.setLineWidth(1.5);
-  doc.line(60, 58, 150, 58); // x1, y1, x2, y2
-
-  // --- DETAILS BOX WITH FAINT PURPLE BACKGROUND ---
-  doc.setFillColor(230, 220, 255); // very light purple
-  doc.setDrawColor(75, 0, 130); // border color
+  doc.line(60, 58, 150, 58);
+  doc.setFillColor(230, 220, 255);
+  doc.setDrawColor(75, 0, 130);
   doc.setLineWidth(0.5);
-  doc.rect(15, 60, 180, 60, 'FD'); // F=fill, D=draw
-
-  // --- DETAILS TEXT ---
+  doc.rect(15, 60, 180, 60, 'FD');
   doc.setFontSize(12);
   const ref = document.getElementById('summaryRef')?.textContent || '';
   const type = document.getElementById('summaryType')?.textContent || '';
   const amount = document.getElementById('summaryAmount')?.textContent || '';
   const date = new Date().toLocaleString();
-
   doc.text(`Reference: ${ref}`, 20, 75);
   doc.text(`Type: ${type}`, 20, 85);
   doc.text(`Amount: KES ${amount}`, 20, 95);
   doc.text(`Date: ${date}`, 20, 105);
-
-  // --- FOOTER NOTE ---
   doc.setFontSize(12);
   doc.setTextColor(75, 0, 130);
   doc.text('Transactions made Fast,Secure, & Seamlesss', 105, 130, 'center');
-
-  // --- SAVE PDF ---
   const safeRef = ref.replace(/[^a-zA-Z0-9]/g, '_');
   doc.save(`Receipt_${safeRef}.pdf`);
 }
@@ -656,44 +752,31 @@ function generateRef(type) {
 function printStatements() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-
-  // --- Header logo ---
   const logoUrl = 'https://i.imgur.com/pG7paVl.png';
-  doc.addImage(logoUrl, 'PNG', 80, 10, 50, 20); // center logo
+  doc.addImage(logoUrl, 'PNG', 80, 10, 50, 20);
   doc.setFontSize(16);
   doc.text('CharisPay Statements', 105, 40, { align: 'center' });
-
-  // --- Prepare table data ---
   const rows = [];
   document.querySelectorAll('#statementBody tr').forEach(tr => {
     const cols = Array.from(tr.querySelectorAll('td')).map(td => td.textContent);
     rows.push(cols);
   });
-
-  if (rows.length === 0) {
-    return alert('No statements to print.');
-  }
-
-  // --- Add table ---
+  if (rows.length === 0) return alert('No statements to print.');
   doc.autoTable({
     startY: 50,
     head: [['Date', 'Ref', 'Type', 'Amount']],
     body: rows,
     theme: 'grid',
-    headStyles: { fillColor: [106, 13, 173] }, // purple header
+    headStyles: { fillColor: [106, 13, 173] },
     styles: { fontSize: 12 },
     margin: { left: 15, right: 15 }
   });
-
-  // --- Footer note ---
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(10);
     doc.text('CharisPay – Fast, Secure & Seamless', 105, 290, { align: 'center' });
   }
-
-  // --- Save PDF ---
   doc.save('CharisPay_Statements.pdf');
 }
 
