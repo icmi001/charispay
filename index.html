@@ -202,17 +202,23 @@ footer {
     </div>
   </div>
 
-  <!-- STATEMENTS -->
-  <div class="section" id="statements">
-    <h3>Statements</h3>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <input type="date" id="filterStart">
-      <input type="date" id="filterEnd">
-      <button onclick="applyFilter()">Filter</button>
-      <button onclick="resetFilter()">Reset</button>
-    </div>
-    <table><thead><tr><th>Date</th><th>Ref</th><th>Type</th><th>Amount</th></tr></thead><tbody id="statementBody"></tbody></table>
+ <!-- STATEMENTS --> 
+<div class="section" id="statements">
+  <h3>Statements</h3>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+    <input type="date" id="filterStart">
+    <input type="date" id="filterEnd">
+    <button onclick="applyFilter()">Filter</button>
+    <button onclick="resetFilter()">Reset</button>
+    <button id="printStatementsBtn" onclick="printStatements()" style="background:#6A0DAD;color:#fff;margin-top:10px;">Print Statements</button>
   </div>
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Ref</th><th>Type</th><th>Amount</th></tr>
+    </thead>
+    <tbody id="statementBody"></tbody>
+  </table>
+</div>
 
   <!-- NOTIFICATIONS -->
   <div class="section" id="notifications">
@@ -288,7 +294,7 @@ footer {
 <footer>CharisAppStore2025</footer>
 <div id="toast"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script type="module">
@@ -573,15 +579,55 @@ async function loadHomeSummary() {
 }
 
 function printReceipt() {
-  const { jsPDF } = window.jspdf;
+const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-  doc.setFontSize(16); doc.text('CharisPay Receipt', 105, 20, 'center');
-  doc.setFontSize(12); doc.text(`Ref: ${document.getElementById('summaryRef').textContent}`, 20, 40);
-  doc.text(`Type: ${document.getElementById('summaryType').textContent}`, 20, 50);
-  doc.text(`Amount: KES ${document.getElementById('summaryAmount').textContent}`, 20, 60);
-  doc.text(`Date: ${new Date().toLocaleString()}`, 20, 70);
-  doc.text('Thank you!', 20, 90);
-  doc.save(`Receipt_${document.getElementById('summaryRef').textContent}.pdf`);
+
+  // --- WHITE HEADER BACKGROUND (so purple logo pops) ---
+  doc.setFillColor(255, 255, 255); 
+  doc.rect(0, 0, 210, 40, 'F'); // x, y, width, height, fill
+
+  // --- LOGO ---
+  const logoUrl = 'https://i.imgur.com/pG7paVl.png';
+  const imgWidth = 50;  
+  const imgHeight = 20; 
+  doc.addImage(logoUrl, 'PNG', (210 - imgWidth) / 2, 10, imgWidth, imgHeight);
+
+  // --- TITLE BELOW LOGO ---
+  doc.setFontSize(18);
+  doc.setTextColor(0, 0, 0); // black text
+  doc.text('CharisPay Receipt', 105, 55, 'center');
+
+  // --- LIGHT PURPLE UNDERLINE ---
+  doc.setDrawColor(138, 43, 226); // light purple (BlueViolet)
+  doc.setLineWidth(1.5);
+  doc.line(60, 58, 150, 58); // x1, y1, x2, y2
+
+  // --- DETAILS BOX WITH FAINT PURPLE BACKGROUND ---
+  doc.setFillColor(230, 220, 255); // very light purple
+  doc.setDrawColor(75, 0, 130); // border color
+  doc.setLineWidth(0.5);
+  doc.rect(15, 60, 180, 60, 'FD'); // F=fill, D=draw
+
+  // --- DETAILS TEXT ---
+  doc.setFontSize(12);
+  const ref = document.getElementById('summaryRef')?.textContent || '';
+  const type = document.getElementById('summaryType')?.textContent || '';
+  const amount = document.getElementById('summaryAmount')?.textContent || '';
+  const date = new Date().toLocaleString();
+
+  doc.text(`Reference: ${ref}`, 20, 75);
+  doc.text(`Type: ${type}`, 20, 85);
+  doc.text(`Amount: KES ${amount}`, 20, 95);
+  doc.text(`Date: ${date}`, 20, 105);
+
+  // --- FOOTER NOTE ---
+  doc.setFontSize(12);
+  doc.setTextColor(75, 0, 130);
+  doc.text('Transactions made Fast,Secure, & Seamlesss', 105, 130, 'center');
+
+  // --- SAVE PDF ---
+  const safeRef = ref.replace(/[^a-zA-Z0-9]/g, '_');
+  doc.save(`Receipt_${safeRef}.pdf`);
 }
 
 function populate(sel, items) {
@@ -606,6 +652,51 @@ function generateRef(type) {
   const initials = type.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
   return `IC1${rand}AB${year}${initials}`;
 }
+
+function printStatements() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // --- Header logo ---
+  const logoUrl = 'https://i.imgur.com/pG7paVl.png';
+  doc.addImage(logoUrl, 'PNG', 80, 10, 50, 20); // center logo
+  doc.setFontSize(16);
+  doc.text('CharisPay Statements', 105, 40, { align: 'center' });
+
+  // --- Prepare table data ---
+  const rows = [];
+  document.querySelectorAll('#statementBody tr').forEach(tr => {
+    const cols = Array.from(tr.querySelectorAll('td')).map(td => td.textContent);
+    rows.push(cols);
+  });
+
+  if (rows.length === 0) {
+    return alert('No statements to print.');
+  }
+
+  // --- Add table ---
+  doc.autoTable({
+    startY: 50,
+    head: [['Date', 'Ref', 'Type', 'Amount']],
+    body: rows,
+    theme: 'grid',
+    headStyles: { fillColor: [106, 13, 173] }, // purple header
+    styles: { fontSize: 12 },
+    margin: { left: 15, right: 15 }
+  });
+
+  // --- Footer note ---
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(10);
+    doc.text('CharisPay – Fast, Secure & Seamless', 105, 290, { align: 'center' });
+  }
+
+  // --- Save PDF ---
+  doc.save('CharisPay_Statements.pdf');
+}
+
 </script>
 </body>
 </html>
