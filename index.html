@@ -81,6 +81,22 @@ footer {
   color: #fff; text-align: center; padding: 12px 20px; font-size: 14px;
   backdrop-filter: blur(5px); z-index: 999;
 }
+/* Charts */
+.chart-container { position: relative; height: 300px; margin: 20px 0; }
+
+/* LEADERBOARD CARDS */
+.lb-container { margin-top: 15px; }
+.lb-card {
+  display: flex; align-items: center; padding: 12px; margin: 8px 0;
+  background: rgba(255,255,255,0.1); border-radius: 12px;
+  border-left: 4px solid #6A0DAD; transition: .2s;
+  position: relative;
+}
+.lb-card.you { box-shadow: 0 0 12px #6A0DAD; font-weight: 600; }
+.lb-card:hover { background: rgba(255,255,255,0.2); transform: translateX(4px); }
+.lb-rank { width: 40px; text-align: center; font-size: 20px; font-weight: bold; }
+.lb-medal { font-size: 24px; }
+.lb-you { background: #6A0DAD; color: #fff; padding: 2px 8px; border-radius: 20px; font-size: 10px; margin-left: 8px; }
 </style>
 </head>
 <body>
@@ -116,6 +132,7 @@ footer {
     <div class="nav-icon" data-section="dashboard" title="Dashboard"><i class="fas fa-tachometer-alt"></i></div>
     <div class="nav-icon" data-section="give" title="Give"><i class="fas fa-hand-holding-heart"></i></div>
     <div class="nav-icon" data-section="statements" title="Statements"><i class="fas fa-file-invoice"></i></div>
+    <div class="nav-icon" data-section="leaderboard" title="Leaderboard"><i class="fas fa-trophy"></i></div>
     <div class="nav-icon" data-section="notifications" title="Notifications"><i class="fas fa-bell"></i></div>
     <div class="nav-icon" data-section="profile" title="Profile"><i class="fas fa-user"></i></div>
     <div class="nav-icon" data-section="chapterAdmin" id="caTab" style="display:none;" title="Chapter Admin"><i class="fas fa-users-cog"></i></div>
@@ -132,7 +149,7 @@ footer {
     <h3>Home</h3>
     <div class="home-card" onclick="navigateTo('dashboard')">
       <h4>Dashboard</h4>
-      <p>Total Given: KES <strong><span id="homeTotal">0</span></strong> | Chapter: <strong><span id="homeChapter">Not Set</span></strong></p>
+      <p>Total Given: <strong><span id="homeTotal">0</span></strong> KES | Chapter: <strong><span id="homeChapter">Not Set</span></strong></p>
     </div>
     <div class="home-card" onclick="navigateTo('give')">
       <h4>Quick Give</h4>
@@ -154,24 +171,27 @@ footer {
   <!-- DASHBOARD -->
   <div class="section" id="dashboard">
     <h3>Dashboard</h3>
-    <p>Total given: <strong>KES <span id="totalAmount">0</span></strong></p>
+    <p>Total given: <strong><span id="totalAmount">0</span></strong> KES</p>
     <p>Chapter: <strong><span id="memberChapter">Not Set</span></strong></p>
   </div>
   <!-- GIVE -->
   <div class="section" id="give">
     <h3>Give</h3>
     <div id="giveStep1">
+      <label>Currency</label>
+      <select id="currency" required><option value="KES">KES</option></select>
       <label>Giving Type</label>
       <select id="givingType" required></select>
       <div id="otherTypeWrapper" style="display:none;"><input type="text" id="otherTypeInput" placeholder="Enter custom type"></div>
-      <label>Amount (KES)</label>
+      <label>Amount</label>
       <input type="number" id="amount" placeholder="Enter amount" min="1" required>
       <button id="nextToSummaryBtn">Next</button>
     </div>
     <div id="giveStep2" style="display:none;">
       <h4>Confirm</h4>
+      <p><strong>Currency:</strong> <span id="summaryCurrency">KES</span></p>
       <p><strong>Type:</strong> <span id="summaryType"></span></p>
-      <p><strong>Amount:</strong> KES <span id="summaryAmount"></span></p>
+      <p><strong>Amount:</strong> <span id="summaryAmount"></span></p>
       <p><strong>Ref:</strong> <span id="summaryRef"></span></p>
       <div style="display:flex;flex-direction:column;gap:12px;margin:20px 0;">
         <button class="paystack" onclick="payWith('paystack')">Pay with Paystack</button>
@@ -188,14 +208,33 @@ footer {
       <input type="date" id="filterEnd">
       <button onclick="applyFilter()">Filter</button>
       <button onclick="resetFilter()">Reset</button>
-      <button id="printStatementsBtn" onclick="printStatements()" style="background:#6A0DAD;color:#fff;margin-top:10px;">Print Statements</button>
+      <button id="printStatementsBtn" onclick="printStatements()" style="background:#6A0DAD;color:#fff;margin-top:10px;">Print PDF</button>
+      <button id="exportCsvBtn" onclick="exportStatements('csv')" style="background:#28a745;color:#fff;margin-top:10px;">Export CSV</button>
+      <button id="exportExcelBtn" onclick="exportStatements('excel')" style="background:#17a2b8;color:#fff;margin-top:10px;">Export Excel</button>
     </div>
     <table>
-      <thead>
-        <tr><th>Date</th><th>Ref</th><th>Type</th><th>Amount</th></tr>
-      </thead>
-      <tbody id="statementBody"></tbody>
+     <thead>
+      <tr><th>Date</th><th>Ref</th><th>Type</th><th>Amount (KES)</th></tr>
+     </thead>
+     <tbody id="statementBody"></tbody>
     </table>
+  </div>
+  <!-- LEADERBOARD (NEW TAB) -->
+  <div class="section" id="leaderboard">
+    <h3>Leaderboard</h3>
+    <div id="chapterLeaderboardContainer" style="display:none;">
+      <h4>Your Chapter Leaderboard</h4>
+      <select id="chapterLbType" style="width:auto;display:inline-block;margin:10px 0;"></select>
+      <button onclick="loadChapterLeaderboard()">Load</button>
+      <div id="chapterLeaderboard" class="lb-container"></div>
+    </div>
+    <div id="globalLeaderboardContainer" style="display:none;">
+      <h4>Global Leaderboard</h4>
+      <select id="globalLbType"></select>
+      <select id="globalLbChapter"></select>
+      <button onclick="loadGlobalLeaderboard()">Filter</button>
+      <div id="globalLeaderboard" class="lb-container"></div>
+    </div>
   </div>
   <!-- NOTIFICATIONS -->
   <div class="section" id="notifications">
@@ -217,6 +256,11 @@ footer {
     <h3>Chapter Admin – <span id="caChapterName"></span></h3>
     <button onclick="loadChapterReport()">View Chapter Report</button>
     <div id="chapterReport" style="margin-top:15px;"></div>
+    <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;margin-top:15px;">
+      <h4>Send Broadcast</h4>
+      <textarea id="broadcastMsg" placeholder="Message to chapter"></textarea>
+      <button onclick="sendBroadcast(true)">Send to Chapter</button>
+    </div>
   </div>
   <!-- SUPER ADMIN -->
   <div class="section" id="superAdmin">
@@ -247,6 +291,12 @@ footer {
       <input type="text" id="newGlobalType" placeholder="Type name">
       <button onclick="addGivingType(false)">Add</button>
     </div>
+    <!-- Delete Giving Type -->
+    <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;margin-bottom:15px;">
+      <h4>Delete Giving Type</h4>
+      <select id="deleteGivingType"></select>
+      <button onclick="deleteGivingType()" style="background:#dc3545;">Delete</button>
+    </div>
     <!-- Promote Admin -->
     <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;margin-bottom:15px;">
       <h4>Promote Chapter Admin</h4>
@@ -254,15 +304,48 @@ footer {
       <select id="adminChapter"></select>
       <button onclick="promoteAdmin()">Promote</button>
     </div>
+    <!-- Delete Admin -->
+    <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;margin-bottom:15px;">
+      <h4>Delete Chapter Admin</h4>
+      <select id="deleteAdminSelect"></select>
+      <button onclick="removeAdmin()" style="background:#dc3545;">Remove</button>
+    </div>
     <!-- Manage Chapters -->
     <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;margin-bottom:15px;">
       <h4>Manage Chapters</h4>
       <div id="chaptersList"></div>
     </div>
-    <!-- Manage Admins -->
+    <!-- Broadcast -->
+    <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;margin-bottom:15px;">
+      <h4>Send Global Broadcast</h4>
+      <select id="globalBroadcastChapter"><option value="">All Members</option></select>
+      <textarea id="globalBroadcastMsg" placeholder="Message to all or selected chapter"></textarea>
+      <button onclick="sendBroadcast(false)">Send</button>
+    </div>
+    <!-- Analytics -->
     <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:10px;">
-      <h4>Manage Chapter Admins</h4>
-      <div id="adminsList"></div>
+      <h4>Analytics Dashboard</h4>
+      <div style="margin-bottom:15px;">
+        <label>View: </label>
+        <select id="analyticsView" onchange="toggleAnalyticsView()">
+          <option value="types">By Giving Type</option>
+          <option value="member">By Member</option>
+        </select>
+      </div>
+      <div id="analyticsTypeView">
+        <input type="date" id="analyticsStart">
+        <input type="date" id="analyticsEnd">
+        <button onclick="loadAnalyticsByType()">Load</button>
+      </div>
+      <div id="analyticsMemberView" style="display:none;">
+        <input type="email" id="analyticsMemberEmail" placeholder="Member Email">
+        <input type="date" id="analyticsMemberStart">
+        <input type="date" id="analyticsMemberEnd">
+        <button onclick="loadAnalyticsByMember()">Load</button>
+      </div>
+      <div class="chart-container">
+        <canvas id="analyticsChart"></canvas>
+      </div>
     </div>
   </div>
   <!-- HELP -->
@@ -279,14 +362,16 @@ footer {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-<!-- GLOBAL PRINT FUNCTIONS (OUTSIDE MODULE) -->
+<!-- GLOBAL PRINT FUNCTIONS -->
 <script>
-// PRINT RECEIPT
 function printReceipt() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   doc.setFillColor(255, 255, 255); 
+  doc
   doc.rect(0, 0, 210, 40, 'F');
   doc.addImage('https://i.imgur.com/pG7paVl.png', 'PNG', (210 - 50) / 2, 10, 50, 20);
   doc.setFontSize(18); doc.setTextColor(0, 0, 0); 
@@ -309,7 +394,6 @@ function printReceipt() {
   doc.save(`Receipt_${ref.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
 }
 
-// PRINT STATEMENTS
 function printStatements() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -319,6 +403,7 @@ function printStatements() {
 
   const rows = [];
   document.querySelectorAll('#statementBody tr').forEach(tr => {
+    if (tr.textContent.includes('No statements')) return;
     const cols = Array.from(tr.querySelectorAll('td')).map(td => td.textContent);
     rows.push(cols);
   });
@@ -327,7 +412,7 @@ function printStatements() {
 
   doc.autoTable({
     startY: 50,
-    head: [['Date', 'Ref', 'Type', 'Amount']],
+    head: [['Date', 'Ref', 'Type', 'Amount (KES)']],
     body: rows,
     theme: 'grid',
     headStyles: { fillColor: [106, 13, 173] },
@@ -344,7 +429,7 @@ function printStatements() {
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 const supabase = createClient('https://gbuqxitxyezjptyeveud.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdidXF4aXR4eWV6anB0eWV2ZXVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NTQ2NzQsImV4cCI6MjA3NzIzMDY3NH0.hiagI1wklBr-LJgDho4srBk7ObH7NozwaKXNJbFzqWc');
 
-let currentUser = null, giveData = {}, offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+let currentUser = null, giveData = {}, offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]'), analyticsChart = null;
 const PAYSTACK_KEY = 'pk_live_29beec3fe9fadec25009d17902b92a637ea615bb';
 
 loadAppData();
@@ -407,6 +492,11 @@ async function loadAppData() {
   populate('#signupChapter', chapterOpts);
   populate('#globalFilterType', typeOpts);
   populate('#globalFilterChapter', chapterOpts);
+  populate('#globalLbType', typeOpts);
+  populate('#globalLbChapter', chapterOpts);
+  populate('#chapterLbType', typeOpts);
+  populate('#deleteGivingType', types.map(t=>({v:t.id,t:t.name})));
+  populate('#globalBroadcastChapter', [{v:'',t:'All'} ,...chapterOpts]);
 
   if (currentUser) {
     document.getElementById('profileName').value = currentUser.name || '';
@@ -418,11 +508,19 @@ async function loadAppData() {
       document.getElementById('caTab').style.display='flex';
       const {data} = await supabase.from('chapters').select('name').eq('id',currentUser.chapter_id).single();
       document.getElementById('caChapterName').textContent = data?.name || 'Unknown';
+      document.getElementById('chapterLeaderboardContainer').style.display = 'block';
+    } else {
+      document.getElementById('chapterLeaderboardContainer').style.display = 'none';
     }
+
     if(currentUser.role === 'super_admin') {
       document.getElementById('saTab').style.display='flex';
+      document.getElementById('globalLeaderboardContainer').style.display = 'block';
       loadSuperAdmin();
+    } else {
+      document.getElementById('globalLeaderboardContainer').style.display = 'none';
     }
+
     await Promise.all([loadDashboard(), loadStatements(), loadHomeSummary()]);
   }
 }
@@ -449,6 +547,10 @@ function showSection(id) {
   if (id === 'home') loadHomeSummary();
   if (id === 'superAdmin') loadSuperAdmin();
   if (id === 'chapterAdmin') loadChapterReport();
+  if (id === 'leaderboard') {
+    if (currentUser?.role === 'chapter_admin') loadChapterLeaderboard();
+    if (currentUser?.role === 'super_admin') loadGlobalLeaderboard();
+  }
 }
 
 function navigateTo(section) {
@@ -466,9 +568,10 @@ function nextToSummary() {
   }
   const amount = parseFloat(document.getElementById('amount').value);
   if (!amount || amount < 1) return toast('Valid amount');
-  giveData = { typeId, typeName, amount };
+  giveData = { typeId, typeName, amount, currency: 'KES' };
   document.getElementById('summaryType').textContent = typeName;
   document.getElementById('summaryAmount').textContent = amount.toLocaleString();
+  document.getElementById('summaryCurrency').textContent = 'KES';
   document.getElementById('giveStep1').style.display = 'none';
   document.getElementById('giveStep2').style.display = 'block';
 }
@@ -480,9 +583,9 @@ function backToStep1() {
 }
 
 window.payWith = async method => {
-  const amount = giveData.amount;
-  const ref = generateRef(giveData.typeName);
-  const record = { member_id: currentUser.id, type_id: giveData.typeId, type_name: giveData.typeName, amount, method, ref, created_at: new Date().toISOString() };
+  const { amount, typeId, typeName } = giveData;
+  const ref = generateRef(typeName);
+  const record = { member_id: currentUser.id, type_id: typeId, type_name: typeName, amount, method, ref, currency: 'KES', created_at: new Date().toISOString(), chapter_id: currentUser.chapter_id };
 
   if (navigator.onLine) {
     const {error} = await supabase.from('giving').insert(record);
@@ -548,15 +651,19 @@ async function loadStatements() {
   if(end) query = query.lte('created_at',end+'T23:59:59');
   const {data} = await query;
   const tbody = document.getElementById('statementBody');
-  tbody.innerHTML = (data||[]).map(g=>`<tr><td>${new Date(g.created_at).toLocaleDateString()}</td><td>${g.ref}</td><td>${g.type_name || 'Custom'}</td><td>KES ${g.amount}</td></tr>`).join('');
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No statements yet. Make a payment to see them here.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(g=>`<tr><td>${new Date(g.created_at).toLocaleDateString()}</td><td>${g.ref}</td><td>${g.type_name || 'Custom'}</td><td>KES ${g.amount.toLocaleString()}</td></tr>`).join('');
 }
 window.applyFilter = loadStatements;
 window.resetFilter = () => { document.getElementById('filterStart').value=''; document.getElementById('filterEnd').value=''; loadStatements(); };
 
 async function loadHomeSummary() {
   const total = currentUser.total_giving.toLocaleString();
-  const ch = currentUser.chapter_id ? (await supabase.from('chapters').select('name').eq('id',currentUser.chapter_id).single()).data?.name : 'Not Set';
   document.getElementById('homeTotal').textContent = total;
+  const ch = currentUser.chapter_id ? (await supabase.from('chapters').select('name').eq('id',currentUser.chapter_id).single()).data?.name : 'Not Set';
   document.getElementById('homeChapter').textContent = ch;
 
   const {data:recent} = await supabase.from('giving').select('ref,type_name,amount,created_at').eq('member_id',currentUser.id).order('created_at',{ascending:false}).limit(1);
@@ -578,16 +685,348 @@ window.saveProfile = async () => {
   toast('Saved!');
 };
 
-// ADMIN FUNCTIONS (unchanged)
-window.deleteChapter = async (id) => { if (!confirm('Delete chapter?')) return; const {error} = await supabase.from('chapters').delete().eq('id', id); if (error) return toast(error.message); toast('Deleted'); loadSuperAdmin(); };
-window.removeAdmin = async (memberId) => { if (!confirm('Remove admin?')) return; const {error} = await supabase.from('members').update({ role: 'member', chapter_id: null }).eq('id', memberId); if (error) return toast(error.message); toast('Removed'); loadSuperAdmin(); };
-async function loadSuperAdmin() { /* unchanged */ }
-window.addChapter = async () => { /* unchanged */ };
-window.addGivingType = async (isChapter) => { /* unchanged */ };
-window.promoteAdmin = async () => { /* unchanged */ };
-window.loadChapterReport = async () => { /* unchanged */ };
-window.loadGlobalReport = async () => { /* unchanged */ };
-window.resetGlobalFilter = () => { /* unchanged */ };
+// === ENHANCED: Chapter Leaderboard ===
+window.loadChapterLeaderboard = async () => {
+  if (!currentUser.chapter_id) return toast('No chapter set');
+
+  const type = document.getElementById('chapterLbType').value;
+  const typeId = (type && !type.startsWith('custom_') && type !== 'other') ? type : null;
+
+  const { data, error } = await supabase.rpc('get_chapter_leaderboard', {
+  p_chapter_id: currentUser.chapter_id,
+  p_type_id: typeId
+});
+
+  if (error) return toast('Error: ' + error.message);
+
+  const lbDiv = document.getElementById('chapterLeaderboard');
+  if (!data || data.length === 0) {
+    lbDiv.innerHTML = '<p style="text-align:center;color:#ccc;">No giving yet in your chapter.</p>';
+    return;
+  }
+
+  const isYou = (id) => id === currentUser.id;
+
+  lbDiv.innerHTML = data.map((g, i) => `
+    <div class="lb-card ${isYou(g.member_id) ? 'you' : ''}" style="border-left-color: ${i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#6A0DAD'}">
+      <div class="lb-rank">
+        ${i < 3 ? `<i class="fas fa-medal lb-medal" style="color:${i===0?'#FFD700':i===1?'#C0C0C0':'#CD7F32'}"></i>` : `${i+1}.`}
+      </div>
+      <div style="flex:1;">
+        <div>${g.member_name || 'Anonymous'}</div>
+        <small style="opacity:0.8;">KES ${Number(g.total_amount).toLocaleString()}</small>
+      </div>
+      ${isYou(g.member_id) ? '<span class="lb-you">YOU</span>' : ''}
+    </div>
+  `).join('');
+};
+
+// === ENHANCED: Global Leaderboard ===
+window.loadGlobalLeaderboard = async () => {
+  const type = document.getElementById('globalLbType').value;
+  const chapter = document.getElementById('globalLbChapter').value;
+  const typeId = (type && !type.startsWith('custom_') && type !== 'other') ? type : null;
+  const chapterId = chapter || null;
+
+  const { data, error } = await supabase.rpc('get_global_leaderboard', {
+  p_type_id: typeId,
+  p_filter_chapter_id: chapterId
+});
+
+  if (error) return toast('Error: ' + error.message);
+
+  const lbDiv = document.getElementById('globalLeaderboard');
+  if (!data || data.length === 0) {
+    lbDiv.innerHTML = '<p style="text-align:center;color:#ccc;">No data matches filters.</p>';
+    return;
+  }
+
+  const isYou = (id) => id === currentUser.id;
+
+  lbDiv.innerHTML = data.map((g, i) => `
+    <div class="lb-card ${isYou(g.member_id) ? 'you' : ''}" style="border-left-color: ${i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#6A0DAD'}">
+      <div class="lb-rank">
+        ${i < 3 ? `<i class="fas fa-medal lb-medal" style="color:${i===0?'#FFD700':i===1?'#C0C0C0':'#CD7F32'}"></i>` : `${i+1}.`}
+      </div>
+      <div style="flex:1;">
+        <div>${g.member_name || 'Anonymous'}</div>
+        <div style="font-size:12px; opacity:0.7;">${g.chapter_name || 'No Chapter'}</div>
+        <small style="opacity:0.8;">KES ${Number(g.total_amount).toLocaleString()}</small>
+      </div>
+      ${isYou(g.member_id) ? '<span class="lb-you">YOU</span>' : ''}
+    </div>
+  `).join('');
+};
+
+// === FIXED: loadGlobalReport === (unchanged, works fine)
+window.loadGlobalReport = async () => {
+  const name = document.getElementById('globalFilterName').value.trim();
+  const type = document.getElementById('globalFilterType').value;
+  const start = document.getElementById('globalFilterStart').value;
+  const end = document.getElementById('globalFilterEnd').value;
+  const chapter = document.getElementById('globalFilterChapter').value;
+
+  let query = supabase
+    .from('giving')
+    .select(`
+      created_at,
+      amount,
+      type_name,
+      ref,
+      members!inner(name),
+      chapters!inner(name)
+    `)
+    .order('created_at', { ascending: false });
+
+  if (name) query = query.ilike('members.name', `%${name}%`);
+  if (start) query = query.gte('created_at', start + 'T00:00:00');
+  if (end) query = query.lte('created_at', end + 'T23:59:59');
+  if (chapter) query = query.eq('members.chapter_id', chapter);
+  if (type && !type.startsWith('custom_') && type !== 'other') {
+    query = query.eq('type_id', type);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error('Global Report Error:', error);
+    return toast('Error: ' + error.message);
+  }
+
+  const reportDiv = document.getElementById('globalReport');
+  if (!data || data.length === 0) {
+    reportDiv.innerHTML = '<p style="text-align:center;color:#ccc;">No giving matches your filters.</p>';
+    return;
+  }
+
+  reportDiv.innerHTML = `
+    <table style="width:100%;font-size:14px;margin-top:10px;">
+      <thead style="background:rgba(255,255,255,0.1);">
+        <tr>
+          <th>Date</th>
+          <th>Name</th>
+          <th>Chapter</th>
+          <th>Type</th>
+          <th>Amount (KES)</th>
+          <th>Ref</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(g => `
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+            <td>${new Date(g.created_at).toLocaleDateString()}</td>
+            <td>${g.members?.name || 'Unknown'}</td>
+            <td>${g.chapters?.name || 'None'}</td>
+            <td>${g.type_name || 'Custom'}</td>
+            <td>KES ${Number(g.amount).toLocaleString()}</td>
+            <td>${g.ref}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+};
+
+window.resetGlobalFilter = () => {
+  document.getElementById('globalFilterName').value = '';
+  document.getElementById('globalFilterType').value = '';
+  document.getElementById('globalFilterStart').value = '';
+  document.getElementById('globalFilterEnd').value = '';
+  document.getElementById('globalFilterChapter').value = '';
+  document.getElementById('globalReport').innerHTML = '<p style="text-align:center;color:#ccc;">Use filters above to view giving.</p>';
+};
+
+window.addChapter = async () => {
+  const name = document.getElementById('newChapterName').value.trim();
+  if (!name) return toast('Enter name');
+  const {error} = await supabase.from('chapters').insert({name});
+  if (error) return toast(error.message);
+  toast('Chapter added');
+  document.getElementById('newChapterName').value = '';
+  loadAppData();
+};
+
+window.addGivingType = async () => {
+  const name = document.getElementById('newGlobalType').value.trim();
+  if (!name) return toast('Enter type');
+  const {error} = await supabase.from('giving_types').insert({name});
+  if (error) return toast(error.message);
+  toast('Type added');
+  document.getElementById('newGlobalType').value = '';
+  loadAppData();
+};
+
+window.deleteGivingType = async () => {
+  const id = document.getElementById('deleteGivingType').value;
+  if (!id || !confirm('Delete this giving type?')) return;
+  const {error} = await supabase.from('giving_types').delete().eq('id', id);
+  if (error) return toast(error.message);
+  toast('Type deleted');
+  loadAppData();
+};
+
+window.promoteAdmin = async () => {
+  const email = document.getElementById('adminEmail').value;
+  const chapter_id = document.getElementById('adminChapter').value;
+  if (!email || !chapter_id) return toast('Fill fields');
+  const {data: member} = await supabase.from('members').select('id').eq('email', email).single();
+  if (!member) return toast('Member not found');
+  const {error} = await supabase.from('members').update({role: 'chapter_admin', chapter_id}).eq('id', member.id);
+  if (error) return toast(error.message);
+  toast('Admin promoted');
+  loadSuperAdmin();
+};
+
+window.removeAdmin = async () => {
+  const memberId = document.getElementById('deleteAdminSelect').value;
+  if (!memberId || !confirm('Remove this admin?')) return;
+  const {error} = await supabase.from('members').update({ role: 'member', chapter_id: null }).eq('id', memberId);
+  if (error) return toast(error.message);
+  toast('Admin removed');
+  loadSuperAdmin();
+};
+
+window.deleteChapter = async (id) => {
+  if (!confirm('Delete chapter?')) return;
+  const {error} = await supabase.from('chapters').delete().eq('id', id);
+  if (error) return toast(error.message);
+  toast('Chapter deleted');
+  loadSuperAdmin();
+};
+
+async function loadSuperAdmin() {
+  const {data: chapters} = await supabase.from('chapters').select('id,name');
+  const {data: admins} = await supabase.from('members').select('id,name,email,chapter_id').eq('role', 'chapter_admin');
+
+  document.getElementById('chaptersList').innerHTML = chapters.map(c => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
+      <span>${c.name}</span>
+      <button onclick="deleteChapter('${c.id}')" style="background:#dc3545;font-size:12px;">Delete</button>
+    </div>
+  `).join('');
+
+  document.getElementById('deleteAdminSelect').innerHTML = '';
+  admins.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = `${a.name} (${a.email})`;
+    document.getElementById('deleteAdminSelect').appendChild(opt);
+  });
+
+  loadGlobalLeaderboard();
+}
+
+// ANALYTICS
+window.toggleAnalyticsView = () => {
+  const view = document.getElementById('analyticsView').value;
+  document.getElementById('analyticsTypeView').style.display = view === 'types' ? 'block' : 'none';
+  document.getElementById('analyticsMemberView').style.display = view === 'member' ? 'block' : 'none';
+};
+
+window.loadAnalyticsByType = async () => {
+  const start = document.getElementById('analyticsStart').value;
+  const end = document.getElementById('analyticsEnd').value;
+  let query = supabase.from('giving').select('type_name, amount');
+  if (start) query = query.gte('created_at', start + 'T00:00:00');
+  if (end) query = query.lte('created_at', end + 'T23:59:59');
+  const {data} = await query;
+
+  const typeTotals = {};
+  data.forEach(g => {
+    const type = g.type_name || 'Custom';
+    typeTotals[type] = (typeTotals[type] || 0) + g.amount;
+  });
+
+  const labels = Object.keys(typeTotals);
+  const values = Object.values(typeTotals);
+
+  if (analyticsChart) analyticsChart.destroy();
+  const ctx = document.getElementById('analyticsChart').getContext('2d');
+  analyticsChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Total Given (KES)', data: values, backgroundColor: '#6A0DAD' }] },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+};
+
+window.loadAnalyticsByMember = async () => {
+  const email = document.getElementById('analyticsMemberEmail').value;
+  const start = document.getElementById('analyticsMemberStart').value;
+  const end = document.getElementById('analyticsMemberEnd').value;
+
+  const {data: member} = await supabase.from('members').select('id').eq('email', email).single();
+  if (!member) return toast('Member not found');
+
+  let query = supabase.from('giving').select('created_at, amount').eq('member_id', member.id);
+  if (start) query = query.gte('created_at', start + 'T00:00:00');
+  if (end) query = query.lte('created_at', end + 'T23:59:59');
+  const {data} = await query;
+
+  const monthly = {};
+  data.forEach(g => {
+    const month = new Date(g.created_at).toLocaleDateString('en-CA', {year: 'numeric', month: 'short'});
+    monthly[month] = (monthly[month] || 0) + g.amount;
+  });
+
+  const labels = Object.keys(monthly);
+  const values = Object.values(monthly);
+
+  if (analyticsChart) analyticsChart.destroy();
+  const ctx = document.getElementById('analyticsChart').getContext('2d');
+  analyticsChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Member Giving (KES)', data: values, borderColor: '#4B0082' }] },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+};
+
+// EXPORT STATEMENTS
+window.exportStatements = async (format) => {
+  try {
+    let query = supabase.from('giving').select('created_at,ref,type_name,amount').eq('member_id', currentUser.id).order('created_at', { ascending: false });
+    const start = document.getElementById('filterStart').value;
+    const end = document.getElementById('filterEnd').value;
+    if (start) query = query.gte('created_at', start + 'T00:00:00');
+    if (end) query = query.lte('created_at', end + 'T23:59:59');
+    const { data, error } = await query;
+    if (error) throw error;
+    if (!data || data.length === 0) return toast('No data to export');
+
+    if (format === 'csv') {
+      const rows = data.map(r => [
+        new Date(r.created_at).toLocaleDateString(),
+        r.ref,
+        r.type_name || 'Custom',
+        `KES ${Number(r.amount).toLocaleString()}`
+      ]);
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const header = 'Date,Ref,Type,Amount (KES)\n';
+      const blob = new Blob([header + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `CharisPay_Statements_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click(); URL.revokeObjectURL(url);
+      toast('CSV downloaded');
+      return;
+    }
+
+    if (format === 'excel') {
+      const sheetData = data.map(r => ({
+        Date: new Date(r.created_at).toLocaleDateString(),
+        Ref: r.ref,
+        Type: r.type_name || 'Custom',
+        'Amount (KES)': Number(r.amount)
+      }));
+      const ws = XLSX.utils.json_to_sheet(sheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Statements');
+      XLSX.writeFile(wb, `CharisPay_Statements_${new Date().toISOString().slice(0,10)}.xlsx`);
+      toast('Excel downloaded');
+    }
+  } catch (err) {
+    console.error('Export failed:', err);
+    toast('Export failed: ' + (err.message || 'Unknown error'));
+  }
+};
 </script>
 </body>
 </html>
