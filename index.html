@@ -701,12 +701,12 @@ window.loadGlobalMembers = async () => {
   const chapter = document.getElementById('globalMemberChapter').value;
   const typeId = (type && !type.startsWith('custom_') && type !== 'other') ? type : null;
 
-  let query = supabase.from('members')
-    .select('id, name, chapter_id, total_giving, chapters(name)')
-    .order('total_giving', { ascending: false })
-    .limit(50);
+  let query = supabase.from('vw_member_points')
+  .select('*')
+  .order('points', { ascending: false })
+  .limit(50);
 
-  if (chapter) query = query.eq('chapter_id', chapter);
+if (chapter) query = query.eq('chapter_id', chapter);  // If filtering
 
   const { data: members, error } = await query;
   if (error) return toast('Error: ' + error.message);
@@ -714,16 +714,17 @@ window.loadGlobalMembers = async () => {
   const ranked = members.map(m => ({ ...m, points: Math.floor(m.total_giving / 1000) }))
     .sort((a, b) => b.points - a.points);
 
-  document.getElementById('globalMembers').innerHTML = ranked.map((m, i) => `
-    <div class="lb-card ${m.id === currentUser.id ? 'you' : ''}">
-      <div class="lb-rank">${i < 3 ? `<i class="fas fa-medal lb-medal" style="color:${i===0?'#FFD700':i===1?'#C0C0C0':'#CD7F32'}"></i>` : `${i+1}.`}</div>
-      <div style="flex:1;">
-        <div><strong>${m.name}</strong> • ${m.chapters?.name || 'No Chapter'}</div>
-        <small>${m.points} Points (KES ${m.total_giving.toLocaleString()})</small>
-      </div>
-      ${m.id === currentUser.id ? '<span class="lb-you">YOU</span>' : ''}
+document.getElementById('globalMembers').innerHTML = ranked.map((m, i) => `
+  <div class="lb-card ${m.id === currentUser.id ? 'you' : ''}">
+    <div class="lb-rank">${i < 3 ? `<i class="fas fa-medal lb-medal" style="color:${i===0?'#FFD700':i===1?'#C0C0C0':'#CD7F32'}"></i>` : `${i+1}.`}</div>
+    <div style="flex:1;">
+      <div><strong>${m.name}</strong> • ${m.chapter_name || 'No Chapter'}</div>
+      <div style="font-size:1.4em; font-weight:bold; color:#FFD700;">${m.points} Points</div>
+      <small style="opacity:0.7;">KES ${m.kes_amount.toLocaleString()}</small>
     </div>
-  `).join('');
+    ${m.id === currentUser.id ? '<span class="lb-you">YOU</span>' : ''}
+  </div>
+`).join('');
   animateProgressBars();
 };
 
