@@ -97,6 +97,29 @@ footer {
 .lb-rank { width: 40px; text-align: center; font-size: 20px; font-weight: bold; }
 .lb-medal { font-size: 24px; }
 .lb-you { background: #6A0DAD; color: #fff; padding: 2px 8px; border-radius: 20px; font-size: 10px; margin-left: 8px; }
+
+/* TABS */
+.lb-tab {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  font-weight: 600;
+  color: #fff;
+}
+.lb-tab.active {
+  background: #6A0DAD;
+  color: #fff;
+}
+.progress-bar {
+  height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; overflow: hidden; margin: 8px 0;
+}
+.progress-bar .fill {
+  height: 100%; background: #6A0DAD; width: 0%; transition: width 1s ease;
+}
+.progress-bar.large { height: 20px; }
+.progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 12px; color: #fff; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -219,23 +242,43 @@ footer {
      <tbody id="statementBody"></tbody>
     </table>
   </div>
-  <!-- LEADERBOARD (NEW TAB) -->
+
+  <!-- LEADERBOARD (UPGRADED WITH TABS) -->
   <div class="section" id="leaderboard">
     <h3>Leaderboard</h3>
-    <div id="chapterLeaderboardContainer" style="display:none;">
-      <h4>Your Chapter Leaderboard</h4>
-      <select id="chapterLbType" style="width:auto;display:inline-block;margin:10px 0;"></select>
-      <button onclick="loadChapterLeaderboard()">Load</button>
-      <div id="chapterLeaderboard" class="lb-container"></div>
+
+    <!-- SUPER ADMIN TABS -->
+    <div id="lbTabs" style="display:none; margin-bottom:15px; display:flex; gap:10px; border-bottom:1px solid rgba(255,255,255,0.2);">
+      <button class="lb-tab active" data-view="chapters">Chapters</button>
+      <button class="lb-tab" data-view="members">Top Members</button>
     </div>
-    <div id="globalLeaderboardContainer" style="display:none;">
-      <h4>Global Leaderboard</h4>
-      <select id="globalLbType"></select>
-      <select id="globalLbChapter"></select>
-      <button onclick="loadGlobalLeaderboard()">Filter</button>
-      <div id="globalLeaderboard" class="lb-container"></div>
+
+    <!-- CHAPTER VIEW -->
+    <div id="chaptersView">
+      <div id="chapterLeaderboardContainer" style="display:none;">
+        <h4>Your Chapter Leaderboard</h4>
+        <select id="chapterLbType" style="width:auto;display:inline-block;margin:10px 0;"></select>
+        <button onclick="loadChapterLeaderboard()">Load</button>
+        <div id="chapterLeaderboard" class="lb-container"></div>
+      </div>
+      <div id="globalChaptersContainer" style="display:none;">
+        <h4>Global Chapters</h4>
+        <select id="globalLbChapter"></select>
+        <button onclick="loadGlobalChapters()">Filter</button>
+        <div id="globalChapters" class="lb-container"></div>
+      </div>
+    </div>
+
+    <!-- TOP MEMBERS VIEW -->
+    <div id="membersView" style="display:none;">
+      <h4>Top 50 Members Worldwide</h4>
+      <select id="globalMemberType" style="width:auto;display:inline-block;margin:5px;"></select>
+      <select id="globalMemberChapter" style="width:auto;display:inline-block;margin:5px;"></select>
+      <button onclick="loadGlobalMembers()">Load</button>
+      <div id="globalMembers" class="lb-container"></div>
     </div>
   </div>
+
   <!-- NOTIFICATIONS -->
   <div class="section" id="notifications">
     <h3>Notifications</h3>
@@ -371,7 +414,6 @@ function printReceipt() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   doc.setFillColor(255, 255, 255); 
-  doc
   doc.rect(0, 0, 210, 40, 'F');
   doc.addImage('https://i.imgur.com/pG7paVl.png', 'PNG', (210 - 50) / 2, 10, 50, 20);
   doc.setFontSize(18); doc.setTextColor(0, 0, 0); 
@@ -467,6 +509,7 @@ async function initApp() {
   await loadUser();
   showSection('home');
   setupUI();
+  if (currentUser?.role === 'super_admin') setupLeaderboardTabs();
 }
 
 async function loadUser() {
@@ -492,11 +535,14 @@ async function loadAppData() {
   populate('#signupChapter', chapterOpts);
   populate('#globalFilterType', typeOpts);
   populate('#globalFilterChapter', chapterOpts);
-  populate('#globalLbType', typeOpts);
-  populate('#globalLbChapter', chapterOpts);
   populate('#chapterLbType', typeOpts);
+  populate('#globalMemberType', typeOpts);
+  populate('#globalMemberChapter', chapterOpts);
+  populate('#globalLbChapter', chapterOpts);
   populate('#deleteGivingType', types.map(t=>({v:t.id,t:t.name})));
   populate('#globalBroadcastChapter', [{v:'',t:'All'} ,...chapterOpts]);
+  populate('#globalMemberType', typeOpts);
+  populate('#globalMemberChapter', chapterOpts);
 
   if (currentUser) {
     document.getElementById('profileName').value = currentUser.name || '';
@@ -508,17 +554,11 @@ async function loadAppData() {
       document.getElementById('caTab').style.display='flex';
       const {data} = await supabase.from('chapters').select('name').eq('id',currentUser.chapter_id).single();
       document.getElementById('caChapterName').textContent = data?.name || 'Unknown';
-      document.getElementById('chapterLeaderboardContainer').style.display = 'block';
-    } else {
-      document.getElementById('chapterLeaderboardContainer').style.display = 'none';
     }
 
     if(currentUser.role === 'super_admin') {
       document.getElementById('saTab').style.display='flex';
-      document.getElementById('globalLeaderboardContainer').style.display = 'block';
       loadSuperAdmin();
-    } else {
-      document.getElementById('globalLeaderboardContainer').style.display = 'none';
     }
 
     await Promise.all([loadDashboard(), loadStatements(), loadHomeSummary()]);
@@ -548,11 +588,165 @@ function showSection(id) {
   if (id === 'superAdmin') loadSuperAdmin();
   if (id === 'chapterAdmin') loadChapterReport();
   if (id === 'leaderboard') {
-    if (currentUser?.role === 'chapter_admin') loadChapterLeaderboard();
-    if (currentUser?.role === 'super_admin') loadGlobalLeaderboard();
+    document.getElementById('lbTabs').style.display = 'none';
+    document.getElementById('chapterLeaderboardContainer').style.display = 'none';
+    document.getElementById('globalChaptersContainer').style.display = 'none';
+    document.getElementById('membersView').style.display = 'none';
+    document.getElementById('chaptersView').style.display = 'block';
+
+    if (currentUser?.role === 'chapter_admin' || !currentUser?.role) {
+      document.getElementById('chapterLeaderboardContainer').style.display = 'block';
+      loadChapterLeaderboard();
+    } else if (currentUser?.role === 'super_admin') {
+      document.getElementById('lbTabs').style.display = 'flex';
+      document.getElementById('globalChaptersContainer').style.display = 'block';
+      loadGlobalChapters();
+      setupLeaderboardTabs();
+    }
   }
 }
 
+function setupLeaderboardTabs() {
+  document.querySelectorAll('.lb-tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const view = tab.dataset.view;
+      document.getElementById('chaptersView').style.display = view === 'chapters' ? 'block' : 'none';
+      document.getElementById('membersView').style.display = view === 'members' ? 'block' : 'none';
+      if (view === 'chapters') loadGlobalChapters();
+      if (view === 'members') loadGlobalMembers();
+    };
+  });
+}
+
+// === CHAPTER LEADERBOARD ===
+window.loadChapterLeaderboard = async () => {
+  if (!currentUser.chapter_id) return toast('No chapter set');
+
+  const type = document.getElementById('chapterLbType').value;
+  const typeId = (type && !type.startsWith('custom_') && type !== 'other') ? type : null;
+
+  const { data: members } = await supabase.from('members')
+    .select('id, name, total_giving')
+    .eq('chapter_id', currentUser.chapter_id);
+
+  if (!members || members.length === 0) {
+    document.getElementById('chapterLeaderboard').innerHTML = '<p style="text-align:center;color:#ccc;">No members yet.</p>';
+    return;
+  }
+
+  const ranked = members
+    .map(m => ({ ...m, points: Math.floor(m.total_giving / 1000) }))
+    .sort((a, b) => b.points - a.points);
+
+  const totalPoints = ranked.reduce((sum, m) => sum + m.points, 0);
+  const target = 1000;
+  const progress = Math.min(100, (totalPoints / target) * 100);
+
+  document.getElementById('chapterLeaderboard').innerHTML = `
+    <div class="progress-bar large">
+      <div class="fill" style="width:${progress}%"></div>
+      <span class="progress-text">${totalPoints} / ${target} Points</span>
+    </div>
+    ${ranked.map((m, i) => `
+      <div class="lb-card ${m.id === currentUser.id ? 'you' : ''}" 
+           style="border-left-color: ${i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#6A0DAD'}">
+        <div class="lb-rank">
+          ${i < 3 ? `<i class="fas fa-medal lb-medal" style="color:${i===0?'#FFD700':i===1?'#C0C0C0':'#CD7F32'}"></i>` : `${i+1}.`}
+        </div>
+        <div style="flex:1;">
+          <div><strong>${m.name}</strong></div>
+          <small style="opacity:0.8;">${m.points} Points (KES ${m.total_giving.toLocaleString()})</small>
+        </div>
+        ${m.id === currentUser.id ? '<span class="lb-you">YOU</span>' : ''}
+      </div>
+    `).join('')}
+  `;
+  animateProgressBars();
+};
+
+// === GLOBAL CHAPTERS ===
+window.loadGlobalChapters = async () => {
+  const chapterFilter = document.getElementById('globalLbChapter').value;
+  let query = supabase.from('chapters').select('id, name, total_points, target_points');
+  if (chapterFilter) query = query.eq('id', chapterFilter);
+  const { data: chapters } = await query;
+
+  const ranked = chapters
+    .map(c => ({ ...c, points: c.total_points || 0, target: c.target_points || 1000 }))
+    .sort((a, b) => b.points - a.points);
+
+  document.getElementById('globalChapters').innerHTML = ranked.map((c, i) => {
+    const progress = c.target ? Math.min(100, (c.points / c.target) * 100) : 0;
+    return `
+      <div class="lb-card" style="border-left-color: ${i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#6A0DAD'}">
+        <div class="lb-rank">
+          ${i < 3 ? `<i class="fas fa-medal lb-medal" style="color:${i===0?'#FFD700':i===1?'#C0C0C0':'#CD7F32'}"></i>` : `${i+1}.`}
+        </div>
+        <div style="flex:1;">
+          <div><strong>${c.name}</strong></div>
+          <div class="progress-bar"><div class="fill" style="width:${progress}%"></div></div>
+          <small>${c.points} / ${c.target} Points</small>
+        </div>
+      </div>
+    `;
+  }).join('');
+  animateProgressBars();
+};
+
+// === GLOBAL TOP 50 MEMBERS ===
+window.loadGlobalMembers = async () => {
+  const type = document.getElementById('globalMemberType').value;
+  const chapter = document.getElementById('globalMemberChapter').value;
+  const typeId = (type && !type.startsWith('custom_') && type !== 'other') ? type : null;
+
+  let query = supabase.from('members')
+    .select('id, name, chapter_id, total_giving, chapters(name)')
+    .order('total_giving', { ascending: false })
+    .limit(50);
+
+  if (chapter) query = query.eq('chapter_id', chapter);
+
+  const { data: members, error } = await query;
+  if (error) return toast('Error: ' + error.message);
+
+  const ranked = members.map(m => ({ ...m, points: Math.floor(m.total_giving / 1000) }))
+    .sort((a, b) => b.points - a.points);
+
+  document.getElementById('globalMembers').innerHTML = ranked.map((m, i) => `
+    <div class="lb-card ${m.id === currentUser.id ? 'you' : ''}">
+      <div class="lb-rank">${i < 3 ? `<i class="fas fa-medal lb-medal" style="color:${i===0?'#FFD700':i===1?'#C0C0C0':'#CD7F32'}"></i>` : `${i+1}.`}</div>
+      <div style="flex:1;">
+        <div><strong>${m.name}</strong> • ${m.chapters?.name || 'No Chapter'}</div>
+        <small>${m.points} Points (KES ${m.total_giving.toLocaleString()})</small>
+      </div>
+      ${m.id === currentUser.id ? '<span class="lb-you">YOU</span>' : ''}
+    </div>
+  `).join('');
+  animateProgressBars();
+};
+
+// === ANIMATE BARS ===
+function animateProgressBars() {
+  document.querySelectorAll('.progress-bar .fill').forEach(bar => {
+    const width = bar.style.width;
+    bar.style.width = '0%';
+    setTimeout(() => bar.style.width = width, 100);
+  });
+}
+
+// === AUTO-REFRESH EVERY 15s ===
+setInterval(() => {
+  if (document.getElementById('leaderboard').style.display === 'block') {
+    const activeTab = document.querySelector('.lb-tab.active')?.dataset.view;
+    if (activeTab === 'members') loadGlobalMembers();
+    else if (activeTab === 'chapters') loadGlobalChapters();
+    else loadChapterLeaderboard();
+  }
+}, 15000);
+
+// === REST OF YOUR CODE (unchanged below) ===
 function navigateTo(section) {
   const tab = document.querySelector(`.nav-icon[data-section="${section}"]`);
   if (tab) tab.click();
@@ -685,80 +879,6 @@ window.saveProfile = async () => {
   toast('Saved!');
 };
 
-// === ENHANCED: Chapter Leaderboard ===
-window.loadChapterLeaderboard = async () => {
-  if (!currentUser.chapter_id) return toast('No chapter set');
-
-  const type = document.getElementById('chapterLbType').value;
-  const typeId = (type && !type.startsWith('custom_') && type !== 'other') ? type : null;
-
-  const { data, error } = await supabase.rpc('get_chapter_leaderboard', {
-  p_chapter_id: currentUser.chapter_id,
-  p_type_id: typeId
-});
-
-  if (error) return toast('Error: ' + error.message);
-
-  const lbDiv = document.getElementById('chapterLeaderboard');
-  if (!data || data.length === 0) {
-    lbDiv.innerHTML = '<p style="text-align:center;color:#ccc;">No giving yet in your chapter.</p>';
-    return;
-  }
-
-  const isYou = (id) => id === currentUser.id;
-
-  lbDiv.innerHTML = data.map((g, i) => `
-    <div class="lb-card ${isYou(g.member_id) ? 'you' : ''}" style="border-left-color: ${i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#6A0DAD'}">
-      <div class="lb-rank">
-        ${i < 3 ? `<i class="fas fa-medal lb-medal" style="color:${i===0?'#FFD700':i===1?'#C0C0C0':'#CD7F32'}"></i>` : `${i+1}.`}
-      </div>
-      <div style="flex:1;">
-        <div>${g.member_name || 'Anonymous'}</div>
-        <small style="opacity:0.8;">KES ${Number(g.total_amount).toLocaleString()}</small>
-      </div>
-      ${isYou(g.member_id) ? '<span class="lb-you">YOU</span>' : ''}
-    </div>
-  `).join('');
-};
-
-// === ENHANCED: Global Leaderboard ===
-window.loadGlobalLeaderboard = async () => {
-  const type = document.getElementById('globalLbType').value;
-  const chapter = document.getElementById('globalLbChapter').value;
-  const typeId = (type && !type.startsWith('custom_') && type !== 'other') ? type : null;
-  const chapterId = chapter || null;
-
-  const { data, error } = await supabase.rpc('get_global_leaderboard', {
-  p_type_id: typeId,
-  p_filter_chapter_id: chapterId
-});
-
-  if (error) return toast('Error: ' + error.message);
-
-  const lbDiv = document.getElementById('globalLeaderboard');
-  if (!data || data.length === 0) {
-    lbDiv.innerHTML = '<p style="text-align:center;color:#ccc;">No data matches filters.</p>';
-    return;
-  }
-
-  const isYou = (id) => id === currentUser.id;
-
-  lbDiv.innerHTML = data.map((g, i) => `
-    <div class="lb-card ${isYou(g.member_id) ? 'you' : ''}" style="border-left-color: ${i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#6A0DAD'}">
-      <div class="lb-rank">
-        ${i < 3 ? `<i class="fas fa-medal lb-medal" style="color:${i===0?'#FFD700':i===1?'#C0C0C0':'#CD7F32'}"></i>` : `${i+1}.`}
-      </div>
-      <div style="flex:1;">
-        <div>${g.member_name || 'Anonymous'}</div>
-        <div style="font-size:12px; opacity:0.7;">${g.chapter_name || 'No Chapter'}</div>
-        <small style="opacity:0.8;">KES ${Number(g.total_amount).toLocaleString()}</small>
-      </div>
-      ${isYou(g.member_id) ? '<span class="lb-you">YOU</span>' : ''}
-    </div>
-  `).join('');
-};
-
-// === FIXED: loadGlobalReport === (unchanged, works fine)
 window.loadGlobalReport = async () => {
   const name = document.getElementById('globalFilterName').value.trim();
   const type = document.getElementById('globalFilterType').value;
@@ -911,11 +1031,8 @@ async function loadSuperAdmin() {
     opt.textContent = `${a.name} (${a.email})`;
     document.getElementById('deleteAdminSelect').appendChild(opt);
   });
-
-  loadGlobalLeaderboard();
 }
 
-// ANALYTICS
 window.toggleAnalyticsView = () => {
   const view = document.getElementById('analyticsView').value;
   document.getElementById('analyticsTypeView').style.display = view === 'types' ? 'block' : 'none';
@@ -979,7 +1096,6 @@ window.loadAnalyticsByMember = async () => {
   });
 };
 
-// EXPORT STATEMENTS
 window.exportStatements = async (format) => {
   try {
     let query = supabase.from('giving').select('created_at,ref,type_name,amount').eq('member_id', currentUser.id).order('created_at', { ascending: false });
